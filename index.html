@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ESP32 Sensor Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E4E9EE; --hole:#C9D1D9; --card:#FBFCFD; --ink:#1B2532; --muted:#566475; --line:#CBD3DB;
+  --code-bg:#16222A; --code-ink:#E4ECF2; --code-dim:#5F7685; --code-new:rgba(233,168,0,.22);
+  --teal:#00878A; --red:#E5383B; --yellow:#E9A800; --blue:#1F6FEB; --green:#2DA44E; --orange:#F07B1D;
+  --ok-bg:#E2F4E7; --ok-ink:#1D6B35; --bad-bg:#FCE6E6; --bad-ink:#A3191C; --warn-bg:#FFF3D1;
+  --sans:'Lexend','Segoe UI',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11181F; --hole:#1C2630; --card:#19222C; --ink:#E5ECF2; --muted:#9AA8B6; --line:#2C3946;
+    --ok-bg:#15301F; --ok-ink:#7FD69A; --bad-bg:#3A1A1C; --bad-ink:#FF9C9E; --warn-bg:#352B10;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11181F; --hole:#1C2630; --card:#19222C; --ink:#E5ECF2; --muted:#9AA8B6; --line:#2C3946;
+  --ok-bg:#15301F; --ok-ink:#7FD69A; --bad-bg:#3A1A1C; --bad-ink:#FF9C9E; --warn-bg:#352B10;
+}
+:root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+*,*::before,*::after{ box-sizing:inherit; }
+body{
+  margin:0; font-family:var(--sans); color:var(--ink); line-height:1.55; font-size:17px;
+  background-color:var(--bg);
+  background-image:radial-gradient(var(--hole) 1.7px, transparent 2px);
+  background-size:20px 20px;
+}
+code{ font-family:var(--mono); font-size:.88em; background:rgba(0,135,138,.12); padding:.08em .35em; border-radius:4px; }
+button,select,input{ font:inherit; color:inherit; }
+:focus-visible{ outline:3px solid var(--blue); outline-offset:2px; }
+
+.wrap{ max-width:1260px; margin:0 auto; padding:20px 18px 80px; }
+header.top{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+.brand h1{ margin:0; font-size:clamp(30px,5vw,46px); font-weight:800; letter-spacing:-.02em; line-height:1.05; }
+.brand h1 .wire{ display:block; height:8px; margin-top:8px; width:min(340px,80%);
+  background:linear-gradient(90deg,var(--red) 0 20%,var(--yellow) 20% 40%,var(--blue) 40% 60%,var(--green) 60% 80%,var(--orange) 80%); border-radius:4px; }
+.brand p{ margin:10px 0 0; color:var(--muted); font-size:15px; }
+.score{ display:flex; gap:10px; align-items:center; background:var(--card); border:2px solid var(--line); border-radius:999px; padding:6px 16px; font-weight:700; }
+.score small{ color:var(--muted); font-weight:500; }
+
+.track{ position:relative; display:flex; justify-content:space-between; align-items:center; margin:8px 0 22px; padding:0 4px; }
+.track::before{ content:""; position:absolute; left:14px; right:14px; top:50%; height:4px; background:var(--line); transform:translateY(-50%); border-radius:2px; }
+.track button{ position:relative; width:30px; height:30px; border-radius:50%; border:3px solid var(--line); background:var(--card); font-size:13px; font-weight:700; cursor:pointer; padding:0; }
+.track button.done{ color:#fff; border-color:transparent; }
+.track button.cur{ box-shadow:0 0 0 4px var(--card),0 0 0 7px var(--ink); }
+.track button:disabled{ cursor:not-allowed; color:var(--muted); opacity:.7; }
+
+.grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,460px); gap:22px; align-items:start; }
+@media (max-width:960px){ .grid{ grid-template-columns:1fr; } }
+
+.mission{ background:var(--card); border:2px solid var(--line); border-radius:16px; padding:24px clamp(16px,3vw,30px); }
+.mnum{ color:var(--muted); font-size:14px; font-weight:500; margin:0; }
+.mission h2{ margin:2px 0 12px; font-size:clamp(24px,3.4vw,32px); font-weight:800; letter-spacing:-.01em; line-height:1.15; }
+.intro p{ margin:0 0 10px; max-width:66ch; }
+.rules{ margin:6px 0 12px; padding-left:0; list-style:none; }
+.rules li{ margin:6px 0; padding-left:2px; }
+.io{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+.io div{ border:2px dashed var(--line); border-radius:10px; padding:10px 12px; font-size:15px; }
+.note{ background:var(--warn-bg); border-radius:8px; padding:8px 12px; font-size:15px; }
+.es{ background:rgba(31,111,235,.09); border-left:4px solid var(--blue); border-radius:6px; padding:10px 14px; margin:8px 0 14px; font-size:15px; }
+#work{ margin:16px 0 6px; }
+
+.actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.btn{ border:2px solid var(--ink); background:transparent; border-radius:10px; padding:10px 18px; font-weight:700; cursor:pointer; }
+.btn.primary{ background:var(--ink); color:var(--card); }
+.btn.primary:hover{ transform:translateY(-1px); }
+.btn.ghost{ border-color:var(--line); font-weight:500; }
+.btn.go{ background:var(--green); border-color:var(--green); color:#fff; }
+
+.field{ display:flex; flex-direction:column; gap:6px; max-width:360px; font-weight:500; }
+.field input{ border:2px solid var(--line); background:var(--bg); border-radius:10px; padding:10px 14px; font-size:18px; }
+
+.part,.wrow{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+.pic{ font-size:28px; width:40px; text-align:center; }
+.pinfo{ flex:1; min-width:140px; }
+.pinfo b{ display:block; }
+.pinfo small{ color:var(--muted); font-size:14px; }
+.seg{ display:inline-flex; border:2px solid var(--line); border-radius:10px; overflow:hidden; }
+.seg button{ border:0; background:transparent; padding:8px 14px; font-family:var(--mono); font-weight:600; font-size:14px; cursor:pointer; }
+.seg button+button{ border-left:2px solid var(--line); }
+.seg button[aria-pressed="true"]{ background:var(--teal); color:#fff; }
+
+.wire-grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,340px); gap:18px; align-items:start; }
+@media (max-width:680px){ .wire-grid{ grid-template-columns:1fr; } }
+.dot{ width:16px; height:16px; border-radius:50%; flex:none; }
+.wrow select{ border:2px solid var(--line); background:var(--bg); border-radius:8px; padding:8px 10px; font-family:var(--mono); font-size:14px; }
+.rowmsg{ flex-basis:100%; margin:0; font-size:14px; padding-left:28px; }
+.rowmsg.ok{ color:var(--ok-ink); } .rowmsg.bad{ color:var(--bad-ink); }
+.boardwrap{ background:var(--bg); border-radius:12px; padding:8px; }
+svg.board{ width:100%; height:auto; display:block; }
+.board .pcb{ fill:#1D2D3A; } .board .shield{ fill:#9AA5B1; } .board .usb{ fill:#B8C0C8; }
+.board .chiptxt{ font:700 14px var(--sans); fill:#1D2D3A; text-anchor:middle; }
+.board .small{ font:500 10px var(--sans); fill:#9AA5B1; text-anchor:middle; }
+.board .pin{ fill:#C6CDD4; stroke:#1D2D3A; stroke-width:1.5; }
+.board .pin.on{ stroke:#fff; stroke-width:2; }
+.board .plab{ font:600 11px var(--mono); fill:#DDE6EE; }
+.board .plab.io{ fill:#F5C542; }
+.board .tag{ font:700 11px var(--sans); fill:var(--ink); }
+.legend{ font-size:13px; color:var(--muted); margin:6px 4px 2px; }
+.legend i{ display:inline-block; width:12px; height:12px; background:#F5C542; border-radius:2px; vertical-align:-1px; margin-right:4px; }
+details.tip{ margin-top:14px; border:2px solid var(--line); border-radius:10px; padding:10px 14px; }
+details.tip summary{ cursor:pointer; font-weight:700; }
+details.tip ul{ margin:8px 0 0; padding-left:20px; font-size:15px; }
+
+.codeblock{ background:var(--code-bg); color:var(--code-ink); border-radius:10px; padding:14px 16px; font-family:var(--mono); font-size:14px; line-height:2.1; overflow-x:auto; }
+.codeblock .cl{ white-space:nowrap; }
+.codeblock .ind{ padding-left:2ch; }
+.codeblock select,.codeblock input{ background:#24343F; color:#FFE08A; border:2px dashed #F2B705; border-radius:6px; font-family:var(--mono); font-size:14px; padding:2px 6px; }
+.codeblock input{ width:6ch; }
+.codeblock input.wide{ width:7ch; }
+.kw{ color:#5CC8D4; } .cn{ color:#D2A8FF; } .cm{ color:var(--code-dim); } .fn{ color:#F2C94C; }
+
+.q{ margin:14px 0; }
+.qtext{ font-weight:500; margin:0 0 8px; }
+.opts{ display:flex; flex-wrap:wrap; gap:8px; }
+.opt{ border:2px solid var(--line); background:var(--bg); border-radius:10px; padding:8px 14px; cursor:pointer; text-align:left; }
+.opt[aria-pressed="true"]{ border-color:var(--teal); background:rgba(0,135,138,.14); }
+.opt code{ background:none; padding:0; }
+
+.puzzle{ display:grid; gap:10px; }
+.slots,.pool{ min-height:52px; display:flex; flex-wrap:wrap; gap:8px; padding:8px; border-radius:10px; }
+.slots{ border:2px dashed var(--teal); }
+.pool{ border:2px solid var(--line); }
+.blk{ font-family:var(--mono); font-size:14px; background:var(--code-bg); color:var(--code-ink); border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
+.blk:hover{ outline:2px solid #F2B705; }
+.serialline{ font-family:var(--mono); font-size:14px; background:#0E1418; color:#9FE0A8; padding:8px 12px; border-radius:8px; min-height:38px; }
+
+.sim{ margin-top:14px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; border:2px solid var(--line); border-radius:12px; padding:12px 14px; }
+.sim input[type=range]{ flex:1; min-width:180px; accent-color:var(--teal); }
+.bulb{ font-size:34px; transition:filter .2s; }
+.bulb.off{ filter:grayscale(1) brightness(.6); }
+.simlab{ display:flex; justify-content:space-between; width:100%; font-size:13px; color:var(--muted); }
+
+.bubble{ display:flex; gap:12px; align-items:flex-start; margin-top:20px; }
+.sparky{ width:54px; height:54px; flex:none; }
+.say{ flex:1; background:var(--bg); border-radius:4px 14px 14px 14px; padding:10px 14px; font-size:15px; min-height:44px; }
+.say.ok{ background:var(--ok-bg); color:var(--ok-ink); }
+.say.bad{ background:var(--bad-bg); color:var(--bad-ink); }
+
+.win{ margin-top:16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; border:2px solid var(--green); border-radius:12px; padding:12px 16px; }
+.stars{ font-size:24px; letter-spacing:2px; }
+
+aside.ide{ position:sticky; top:calc(14px + env(safe-area-inset-top,0px)); display:flex; flex-direction:column; gap:12px; }
+@media (max-width:960px){ aside.ide{ position:static; } }
+.panel{ background:var(--code-bg); color:var(--code-ink); border-radius:12px; overflow:hidden; }
+.phead{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 14px; background:#0F181E; font-size:13px; }
+.phead b{ font-family:var(--mono); font-weight:600; }
+.phead .lights{ display:flex; gap:6px; } .phead .lights i{ width:10px; height:10px; border-radius:50%; background:#2F4250; display:block; }
+.code{ font-family:var(--mono); font-size:13px; line-height:1.6; max-height:min(56vh,520px); overflow:auto; padding:10px 0; }
+.ln{ display:flex; white-space:pre; padding-right:14px; }
+.ln .num{ width:3.4ch; flex:none; text-align:right; color:var(--code-dim); margin-right:1.6ch; user-select:none; }
+.ln.new{ background:var(--code-new); }
+.empty{ color:var(--code-dim); padding:6px 18px; font-family:var(--mono); font-size:13px; }
+.c-cm{ color:#6F8796; } .c-st{ color:#7EE787; } .c-pp{ color:#FF9B85; } .c-kw{ color:#5CC8D4; } .c-k2{ color:#D2A8FF; } .c-nu{ color:#F0A35E; } .c-fn{ color:#F2C94C; }
+.monitor{ font-family:var(--mono); font-size:12.5px; line-height:1.5; height:170px; overflow:auto; padding:10px 14px; background:#0B1115; color:#9FE0A8; white-space:pre; }
+.monitor .dim{ color:var(--code-dim); white-space:normal; }
+.ledstat{ display:flex; align-items:center; gap:6px; }
+.copybtn{ background:var(--green); color:#fff; border:0; border-radius:8px; padding:6px 12px; font-weight:700; cursor:pointer; font-size:13px; }
+
+.checklist{ list-style:none; padding:0; margin:10px 0; }
+.checklist label{ display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+.checklist input{ width:22px; height:22px; accent-color:var(--green); flex:none; margin-top:2px; }
+ol.steps{ padding-left:22px; } ol.steps li{ margin:8px 0; }
+.trouble{ display:grid; gap:8px; margin:10px 0; }
+.trouble div{ border-left:4px solid var(--orange); background:var(--bg); padding:8px 12px; border-radius:6px; font-size:15px; }
+.cert{ margin-top:18px; text-align:center; border:3px solid var(--ink); border-radius:16px; padding:22px; }
+.cert h3{ margin:4px 0; font-size:26px; }
+.locked{ opacity:.45; pointer-events:none; }
+h3.sub{ margin:22px 0 6px; font-size:20px; }
+
+.fab{ display:none; position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom,0px)); z-index:5; background:var(--ink); color:var(--card); border:0; border-radius:999px; padding:12px 18px; font-weight:700; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+@media (max-width:960px){ .fab{ display:block; } }
+footer{ margin-top:26px; color:var(--muted); font-size:13px; text-align:center; }
+footer button{ background:none; border:0; text-decoration:underline; color:inherit; cursor:pointer; font-size:13px; }
+#confetti{ position:fixed; inset:0; pointer-events:none; z-index:20; width:100%; height:100%; }
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>ESP32 Sensor Quest<span class="wire"></span></h1>
+      <p>Build the code for your sensor station, one mission at a time.</p>
+    </div>
+    <div class="score" aria-live="polite"><span id="who"></span><span>⭐ <span id="total">0</span><small> / 33</small></span></div>
+  </header>
+
+  <nav class="track" id="track" aria-label="Missions"></nav>
+
+  <div class="grid">
+    <main class="mission" id="stage"></main>
+    <aside class="ide" id="ide">
+      <div class="panel">
+        <div class="phead"><span class="lights"><i></i><i></i><i></i></span><b>my_station.ino</b><span id="copyslot"></span></div>
+        <div class="code" id="code"></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><b>Serial Monitor (preview)</b><span class="ledstat" id="ledstat"></span></div>
+        <div class="monitor" id="monitor"></div>
+      </div>
+    </aside>
+  </div>
+  <footer>Projects, 10th grade. Your progress is saved on this device. <button id="reset">Start again</button></footer>
+</div>
+<button class="fab" id="fab">👀 My code</button>
+
+<script>
+const $=q=>document.querySelector(q);
+const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const KEY='esp32-sensor-quest-v1';
+
+const COMP={
+  mq:{name:'MQ-135',what:'air quality (gas)',icon:'💨',c:'red',io:'INPUT',sig:'Signal wire: AO (analog out)',cst:'MQ135_PIN',v:'airValue',label:'Air (MQ-135): '},
+  ky:{name:'KY-037',what:'sound',icon:'🔊',c:'yellow',io:'INPUT',sig:'Signal wire: AO (analog out)',cst:'KY037_PIN',v:'soundValue',label:'Sound (KY-037): '},
+  ldr:{name:'LDR',what:'light',icon:'☀️',c:'blue',io:'INPUT',sig:'Signal wire: AO (analog out)',cst:'LDR_PIN',v:'lightValue',label:'Light (LDR): '},
+  dht:{name:'DHT11',what:'temperature and humidity',icon:'🌡️',c:'green',io:'INPUT',sig:'Signal wire: DATA (or S)',cst:'DHT_PIN'},
+  led:{name:'LED',what:'makes light',icon:'🔴',c:'orange',io:'OUTPUT',sig:'Long leg (+) with a 220 Ω resistor',cst:'LED_PIN'}
+};
+const ORDER=['mq','ky','ldr','dht','led'];
+const ANALOG=['mq','ky','ldr'];
+const ADC1=[32,33,34,35,36,39], ADC2=[2,4,12,13,14,15,25,26,27], INONLY=[34,35,36,39], BOOT=[12,15];
+const GPIOS=[2,4,5,12,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33,34,35,36,39];
+const WCOL=['red','yellow','blue','green','orange'];
+
+const DEF={step:0,max:0,name:'',done:[],stars:{},classify:{},pins:{},consts:{},modes:{},reads:{},dhtr:{},dark:'',op:'',threshold:2000,ifS:'',elseS:'',delay:2000,checks:{}};
+function load(){ try{ const r=localStorage.getItem(KEY); if(r) return Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(r)); }catch(e){} return JSON.parse(JSON.stringify(DEF)); }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(s)); }catch(e){} }
+let s=load(), cur=0, tries=0, ans={}, puz=[], lastNew=-1;
+const has=i=>s.done.includes(i);
+
+/* ---------- ESP32 board drawing ---------- */
+const LEFT=[['EN'],['VP',36],['VN',39],['D34',34],['D35',35],['D32',32],['D33',33],['D25',25],['D26',26],['D27',27],['D14',14],['D12',12],['D13',13],['GND'],['VIN']];
+const RIGHT=[['D23',23],['D22',22],['TX0'],['RX0'],['D21',21],['D19',19],['D18',18],['D5',5],['TX2',17],['RX2',16],['D4',4],['D2',2],['D15',15],['GND'],['3V3']];
+const LEGEND='<p class="legend"><i></i>Yellow label = INPUT ONLY pin</p>';
+function boardSVG(pins){
+  const who={}; ORDER.forEach(k=>{ if(pins[k]) who[pins[k]]=k; });
+  let o='<svg viewBox="0 0 360 500" class="board" role="img" aria-label="ESP32 board with your wires">';
+  o+='<rect x="100" y="8" width="160" height="462" rx="12" class="pcb"/>';
+  o+='<rect x="130" y="20" width="100" height="72" rx="5" class="shield"/><text x="180" y="62" class="chiptxt">ESP32</text>';
+  o+='<rect x="160" y="472" width="40" height="22" rx="3" class="usb"/>';
+  const row=(arr,L)=>arr.forEach(([lab,g],i)=>{
+    const y=114+i*24, x=L?113:247, k=g!=null?who[g]:null, io=INONLY.includes(g);
+    const txt=(g!=null && lab!=='D'+g)?lab+' '+g:lab;
+    if(k){ o+=`<line x1="${x}" y1="${y}" x2="${L?86:274}" y2="${y}" stroke="var(--${COMP[k].c})" stroke-width="4" stroke-linecap="round"/>`;
+      o+=`<text x="${L?82:278}" y="${y+4}" class="tag" text-anchor="${L?'end':'start'}">${COMP[k].name}</text>`; }
+    o+=`<circle cx="${x}" cy="${y}" r="5.5" class="pin${k?' on':''}"${k?` style="fill:var(--${COMP[k].c})"`:''}/>`;
+    o+=`<text x="${L?x+11:x-11}" y="${y+3.5}" class="plab${io?' io':''}" text-anchor="${L?'start':'end'}">${txt}</text>`;
+  });
+  row(LEFT,true); row(RIGHT,false);
+  return o+'</svg>';
+}
+function validatePin(k){
+  const p=s.pins[k], n=COMP[k].name;
+  if(!p) return {ok:false,msg:`Choose a pin for the ${n}.`};
+  const other=ORDER.find(j=>j!==k && s.pins[j]===p);
+  if(other) return {ok:false,msg:`GPIO ${p} is already used by the ${COMP[other].name}. One pin = one part!`};
+  if(ANALOG.includes(k)){
+    if(ADC1.includes(p)) return {ok:true,msg:`GPIO ${p} can read analog values. 👍`};
+    if(ADC2.includes(p)) return {ok:false,msg:`GPIO ${p} reads analog, but it stops working when WiFi is ON (your station will use WiFi later!). Try 32, 33, 34, 35, 36 or 39.`};
+    return {ok:false,msg:`GPIO ${p} cannot read analog values. The ${n} needs an analog pin: 32, 33, 34, 35, 36 or 39.`};
+  }
+  if(k==='dht'){
+    if(INONLY.includes(p)) return {ok:false,msg:`GPIO ${p} is INPUT ONLY. The DHT11 needs to talk in both directions. Try 4, 13, 14 or 25.`};
+    if(BOOT.includes(p)) return {ok:false,msg:`GPIO ${p} is a boot pin. It can stop your upload. Choose another one.`};
+    return {ok:true,msg:`GPIO ${p} is a good digital pin. 👍`};
+  }
+  if(INONLY.includes(p)) return {ok:false,msg:`GPIO ${p} is INPUT ONLY! An LED needs an OUTPUT pin. Try GPIO 2 (it has a built-in LED too!).`};
+  if(BOOT.includes(p)) return {ok:false,msg:`GPIO ${p} is a boot pin. It can stop your upload. Choose another one.`};
+  return {ok:true,msg:`GPIO ${p} can be an OUTPUT. 👍`};
+}
+
+/* ---------- helpers ---------- */
+function mcq(id,q,opts){ return `<div class="q"><p class="qtext">${q}</p><div class="opts" data-q="${id}">${opts.map((o,i)=>`<button class="opt" data-i="${i}" aria-pressed="${ans[id]===i}">${o}</button>`).join('')}</div></div>`; }
+function bindMcq(w){ w.querySelectorAll('.opts').forEach(g=>g.addEventListener('click',e=>{ const b=e.target.closest('.opt'); if(!b) return; g.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed','true'); ans[g.dataset.q]=+b.dataset.i; })); }
+function sel(key,opts,val,label){ return `<select data-key="${key}" aria-label="${label||'choose'}"><option value="">?</option>${opts.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select>`; }
+const C=t=>`<code>${esc(t)}</code>`;
+
+/* ---------- missions ---------- */
+const M=[
+{ title:'Hello, engineer! 👋', noStars:true, checkLabel:"Let's go!",
+  intro:`<p>In this quest you will build the code for an <b>ESP32 sensor station</b>, step by step.</p>
+  <p>Every mission adds new lines to <b>your code</b> (the dark panel). At the end, you copy the code to <b>Arduino IDE</b> and test it with your real ESP32.</p>
+  <p>Your team: 💨 <b>MQ-135</b>, 🔊 <b>KY-037</b>, ☀️ <b>LDR</b>, 🌡️ <b>DHT11</b> and 🔴 <b>LED</b>.</p>`,
+  es:'En esta aventura vas a construir, paso a paso, el código de una estación de sensores con ESP32. Cada misión agrega líneas nuevas a tu código (panel oscuro). Al final copias el código en Arduino IDE y lo pruebas con tu ESP32 real.',
+  hint:'Just write your name in the box. 🙂',
+  render(w){ w.innerHTML=`<label class="field"><span>What is your name?</span><input id="nm" maxlength="30" autocomplete="off" value="${esc(s.name)}" placeholder="Your name"></label>`; },
+  check(){ const v=$('#nm').value.trim(); if(v.length<2) return [false,'Write your name first, please. ✍️']; s.name=v; return [true,`Nice to meet you, ${esc(v)}! Let's build something cool. 🚀`]; }
+},
+{ title:'Inputs and outputs',
+  intro:`<p>The ESP32 is the brain. 🧠 Some parts <b>send information IN</b> to the brain. Other parts <b>receive orders OUT</b> from the brain.</p>
+  <div class="io"><div><b>INPUT ⬅️</b><br>Information comes IN. These parts measure things.</div><div><b>OUTPUT ➡️</b><br>The ESP32 sends a signal OUT. These parts do things.</div></div>
+  <p>Tap <b>INPUT</b> or <b>OUTPUT</b> for each part.</p>`,
+  es:'El ESP32 es el cerebro. Algunas partes envían información HACIA el cerebro: son entradas (INPUT) y miden cosas. Otras reciben órdenes DESDE el cerebro: son salidas (OUTPUT) y hacen cosas. Toca INPUT u OUTPUT para cada componente.',
+  hint:'Ask yourself: does this part MEASURE something (input) or DO something (output)?',
+  render(w){
+    w.innerHTML=ORDER.map(k=>`<div class="part"><span class="pic">${COMP[k].icon}</span><div class="pinfo"><b>${COMP[k].name}</b><small>${COMP[k].what}</small></div><div class="seg" data-k="${k}">${['INPUT','OUTPUT'].map(v=>`<button aria-pressed="${s.classify[k]===v}" data-v="${v}">${v}</button>`).join('')}</div></div>`).join('');
+    w.querySelectorAll('.seg').forEach(g=>g.onclick=e=>{ const b=e.target.closest('button'); if(!b) return; s.classify[g.dataset.k]=b.dataset.v; g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); save(); });
+  },
+  check(){
+    for(const k of ORDER){ const v=s.classify[k]; if(!v) return [false,'Choose INPUT or OUTPUT for every part.'];
+      if(v!==COMP[k].io) return [false, COMP[k].io==='INPUT' ? `Hmm… the ${COMP[k].name} measures ${COMP[k].what}. It sends information IN to the ESP32. Try again!` : 'The LED does not measure anything. It receives an order FROM the ESP32. Try again!']; }
+    return [true,'Perfect! Sensors are INPUTS ⬅️ and the LED is an OUTPUT ➡️.'];
+  }
+},
+{ title:'Connect the wires',
+  intro:`<p>Choose a <b>GPIO pin</b> for each part. Careful: not all pins are the same! ⚠️</p>
+  <ul class="rules"><li>🟡 Pins <b>34, 35, 36 and 39</b> are <b>INPUT ONLY</b>. They can listen, but they cannot send signals.</li>
+  <li>📈 The MQ-135, KY-037 and LDR give <b>analog</b> values (many numbers), so they need <b>analog pins</b>.</li></ul>
+  <p>Sparky checks every pin as you choose it. Then connect the real wires the same way!</p>`,
+  es:'Elige un pin GPIO para cada componente. Los pines 34, 35, 36 y 39 son SOLO DE ENTRADA: pueden recibir información pero no enviar señales. El MQ-135, KY-037 y LDR dan valores analógicos (muchos números), así que necesitan pines analógicos. Luego conecta los cables reales igual que en el dibujo.',
+  hint:'Analog sensors → 32, 33, 34, 35, 36 or 39. DHT11 → a normal pin like 4. LED → an output pin like 2.',
+  render(w){
+    w.innerHTML=`<div class="wire-grid"><div>${ORDER.map(k=>`<div class="wrow"><span class="dot" style="background:var(--${COMP[k].c})"></span><div class="pinfo"><b>${COMP[k].icon} ${COMP[k].name}</b><small>${COMP[k].sig}</small></div><select data-k="${k}" aria-label="Pin for ${COMP[k].name}"><option value="">GPIO?</option>${GPIOS.map(g=>`<option value="${g}" ${s.pins[k]===g?'selected':''}>GPIO ${g}${INONLY.includes(g)?' (input only)':''}</option>`).join('')}</select><p class="rowmsg" id="rm-${k}"></p></div>`).join('')}</div>
+    <div class="boardwrap" id="bw">${boardSVG(s.pins)}${LEGEND}</div></div>
+    <details class="tip"><summary>🔌 Power wires (VCC and GND)</summary><ul>
+    <li>All <b>GND</b> wires go to <b>GND</b> on the ESP32.</li>
+    <li><b>DHT11, KY-037, LDR</b>: VCC goes to <b>3V3</b>.</li>
+    <li><b>MQ-135</b>: VCC goes to <b>VIN</b> (5V). Ask your teacher before you connect it.</li>
+    <li><b>LED</b>: long leg → resistor (220 Ω) → your GPIO pin. Short leg → GND.</li></ul></details>`;
+    w.querySelectorAll('select').forEach(x=>x.onchange=()=>{ const k=x.dataset.k; s.pins[k]=x.value?+x.value:null; save(); $('#bw').innerHTML=boardSVG(s.pins)+LEGEND; ORDER.forEach(j=>{ if(s.pins[j]) showRow(j); }); renderCode(); });
+    ORDER.forEach(k=>{ if(s.pins[k]) showRow(k); });
+  },
+  check(){ let first=null; ORDER.forEach(k=>{ const r=showRow(k); if(!r.ok && !first) first=r.msg; }); return first?[false,first]:[true,'Great wiring! Every part has a good pin. ✅ Now connect the real wires.']; }
+},
+{ title:'Give your pins a name',
+  intro:`<p>In the code, we give each pin a <b>name</b>. Then the ESP32 knows where every part is. 📍</p>
+  <p>${C('const int')} = a whole number that never changes.</p>
+  <p>🔎 Write the GPIO number where <b>you connected</b> each part. The code and the wires must <b>match</b>!</p>`,
+  es:'En el código le damos un nombre a cada pin, así el ESP32 sabe dónde está cada componente. "const int" es un número entero que nunca cambia. Escribe el número de GPIO donde TÚ conectaste cada componente. ¡El código y los cables deben coincidir!',
+  hint:'Look at the colored tags on the board picture. Each tag shows the part and its pin.',
+  render(w){
+    w.innerHTML=`<div class="wire-grid"><div class="codeblock">${ORDER.map(k=>`<div class="cl"><span class="kw">const int</span> <span class="cn">${COMP[k].cst}</span> = <input type="number" inputmode="numeric" data-k="${k}" value="${s.consts[k]??''}" aria-label="Pin number for ${COMP[k].name}">; <span class="cm">// ${COMP[k].name}</span></div>`).join('')}</div><div class="boardwrap">${boardSVG(s.pins)}${LEGEND}</div></div>`;
+    w.querySelectorAll('input').forEach(x=>x.oninput=()=>{ s.consts[x.dataset.k]=x.value; save(); });
+  },
+  check(){
+    for(const k of ORDER){ const v=s.consts[k]; if(v===undefined||v==='') return [false,'Write a number in every box.'];
+      if(+v!==s.pins[k]) return [false,`Your ${COMP[k].name} wire is on GPIO ${s.pins[k]}, but your code says ${esc(v)}. The code and the wire must match! 🔌`]; }
+    return [true,'Code and wires match. You are a pin detective! 🔎'];
+  }
+},
+{ title:'Call the DHT11 helper',
+  intro:`<p>A <b>library</b> is code that other people wrote to help us. 📚 Reading the DHT11 is a bit complicated, so we use the <b>DHT library</b>.</p>`,
+  es:'Una librería es código que otras personas escribieron para ayudarnos. Leer el DHT11 es algo complicado, por eso usamos la librería DHT. Responde las dos preguntas.',
+  hint:'In Arduino, libraries start with the # symbol. And look at the name printed on your sensor!',
+  render(w){ w.innerHTML=mcq('a','1. Which line adds the DHT library? (It goes at the very top of the code.)',[C('#include <DHT.h>'),C('#import DHT'),C('include DHT.h;')])+mcq('b',`2. Now we create our sensor. Complete the line: ${C('DHT dht(DHT_PIN, ____);')}`,[C('DHT22'),C('DHT11'),C('LED_PIN')]); bindMcq(w); },
+  check(){ if(ans.a===undefined||ans.b===undefined) return [false,'Answer both questions.'];
+    if(ans.a!==0) return [false,'Look for the # symbol and the &lt; &gt; brackets. In Arduino we write #include.'];
+    if(ans.b!==1) return [false,'Look at your sensor. What is its name? 🌡️'];
+    return [true,'Library ready! Now the code can talk to the DHT11. 📚']; }
+},
+{ title:'Open the Serial Monitor',
+  intro:`<p>${C('void setup() { }')} runs <b>one time</b>, when the ESP32 turns on. ⚡</p>
+  <p>The <b>Serial Monitor</b> is a window in Arduino IDE. The ESP32 uses it to write messages to your computer. 💬 First, we open the connection.</p>`,
+  es:'"void setup()" se ejecuta UNA sola vez, cuando el ESP32 se enciende. El Monitor Serie es una ventana de Arduino IDE donde el ESP32 escribe mensajes a tu computadora. Primero abrimos la conexión.',
+  hint:'Arduino cares about capital letters and the ; at the end of each line.',
+  render(w){ w.innerHTML=mcq('a','1. Which line starts the connection?',[C('serial.begin(115200)'),C('Serial.begin(115200);'),C('Serial.start(115200);')])+mcq('b','2. The number 115200 is the speed (baud). In the Serial Monitor you must choose…',['Any speed, it does not matter','The same speed: 115200 baud','9600 baud, always']); bindMcq(w); },
+  check(){ if(ans.a===undefined||ans.b===undefined) return [false,'Answer both questions.'];
+    if(ans.a!==1) return [false,'Careful with the details: capital S, the word begin, and the ; at the end.'];
+    if(ans.b!==1) return [false,'If the speeds are different, you see strange symbols like ⸮⸮⸮. They must be the same!'];
+    return [true,'Connection open! The ESP32 can talk to your computer now. 💬']; }
+},
+{ title:'Tell each pin its job',
+  intro:`<p>Each pin needs to know its <b>job</b>. We use ${C('pinMode(pin, mode)')}.</p>
+  <p>Remember mission 2: sensors ⬅️ INPUT, LED ➡️ OUTPUT.</p>
+  <p class="note">ℹ️ The DHT11 is special: ${C('dht.begin();')} prepares it for us.</p>`,
+  es:'Cada pin necesita saber su trabajo. Usamos pinMode(pin, modo). Recuerda la misión 2: los sensores son INPUT y el LED es OUTPUT. El DHT11 es especial: dht.begin() lo prepara por nosotros.',
+  hint:'Four sensors listen (INPUT). Only one part receives orders (OUTPUT).',
+  render(w){
+    const ks=['mq','ky','ldr','led'];
+    w.innerHTML=`<div class="codeblock"><div class="cl"><span class="kw">void</span> <span class="fn">setup</span>() {</div><div class="cl ind"><span class="fn">Serial.begin</span>(115200);</div>${ks.map(k=>`<div class="cl ind"><span class="fn">pinMode</span>(<span class="cn">${COMP[k].cst}</span>, ${sel(k,['INPUT','OUTPUT'],s.modes[k],'Mode for '+COMP[k].name)});</div>`).join('')}<div class="cl ind"><span class="fn">dht.begin</span>();</div><div class="cl">}</div></div>`;
+    w.querySelectorAll('select').forEach(x=>x.onchange=()=>{ s.modes[x.dataset.key]=x.value; save(); });
+  },
+  check(){ for(const k of ['mq','ky','ldr','led']){ const v=s.modes[k]; if(!v) return [false,'Choose a mode for every pin.'];
+      if(v!==COMP[k].io) return [false, k==='led'?'The LED receives orders OUT from the ESP32 → OUTPUT.':`The ${COMP[k].name} is a sensor. It sends information IN → INPUT.`]; }
+    return [true,'Every pin knows its job! setup() is finished. ✅']; }
+},
+{ title:'Read the analog sensors',
+  intro:`<p>${C('void loop() { }')} repeats <b>again and again</b>, forever. 🔁</p>
+  <p>First, we read the sensors and save each value in a <b>variable</b> (a box with a name). 📦</p>
+  <ul class="rules"><li>${C('digitalRead')} gives only 2 values: 0 or 1.</li><li>${C('analogRead')} gives many values.</li></ul>`,
+  es:'"void loop()" se repite una y otra vez, para siempre. Primero leemos los sensores y guardamos cada valor en una variable (una caja con nombre). digitalRead da solo 2 valores (0 o 1); analogRead da muchos valores.',
+  hint:'Gas, sound and light can be a little or a lot. They are not only 0 or 1.',
+  render(w){
+    w.innerHTML=`<div class="codeblock"><div class="cl"><span class="kw">void</span> <span class="fn">loop</span>() {</div>${ANALOG.map(k=>`<div class="cl ind"><span class="kw">int</span> ${COMP[k].v} = ${sel(k,['analogRead','digitalRead'],s.reads[k],'Read function for '+COMP[k].name)}(<span class="cn">${COMP[k].cst}</span>);</div>`).join('')}<div class="cl"><span class="cm">  // more code later…</span></div><div class="cl">}</div></div>`+mcq('c','On the ESP32, analogRead gives numbers from 0 to…',['1023','4095','100']);
+    w.querySelectorAll('select').forEach(x=>x.onchange=()=>{ s.reads[x.dataset.key]=x.value; save(); }); bindMcq(w);
+  },
+  check(){ for(const k of ANALOG){ const v=s.reads[k]; if(!v) return [false,'Choose a function for every sensor.'];
+      if(v!=='analogRead') return [false,`The ${COMP[k].name} gives many values, not only 0 or 1. Use analogRead.`]; }
+    if(ans.c===undefined) return [false,'Answer the question about the numbers.'];
+    if(ans.c!==1) return [false,'The ESP32 has 12-bit analog pins. That means 0 to 4095. (The Arduino UNO uses 0 to 1023.)'];
+    return [true,'Three sensors reading! Values go from 0 to 4095. 📈']; }
+},
+{ title:'Read temperature and humidity',
+  intro:`<p>The DHT11 gives <b>decimal numbers</b>, like 27.5. So we use ${C('float')} (a number with decimals) instead of ${C('int')}.</p>`,
+  es:'El DHT11 da números decimales, como 27.5. Por eso usamos "float" (número con decimales) en lugar de "int". Elige la función correcta para cada variable.',
+  hint:'The name of the variable and the name of the function talk about the same thing.',
+  render(w){
+    const o=['readHumidity','readTemperature','readLight'];
+    w.innerHTML=`<div class="codeblock"><div class="cl"><span class="kw">float</span> temperature = dht.${sel('t',o,s.dhtr.t,'Function for temperature')}();</div><div class="cl"><span class="kw">float</span> humidity = dht.${sel('h',o,s.dhtr.h,'Function for humidity')}();</div></div>`;
+    w.querySelectorAll('select').forEach(x=>x.onchange=()=>{ s.dhtr[x.dataset.key]=x.value; save(); });
+  },
+  check(){ const t=s.dhtr.t,h=s.dhtr.h; if(!t||!h) return [false,'Choose a function for both lines.'];
+    if(t==='readLight'||h==='readLight') return [false,"The DHT11 cannot measure light. That is the LDR's job! ☀️"];
+    if(t!=='readTemperature'||h!=='readHumidity') return [false,'Check the names: temperature needs readTemperature, humidity needs readHumidity.'];
+    return [true,'Temperature 🌡️ and humidity 💧 are ready!']; }
+},
+{ title:'Show the data',
+  intro:`<p>Now let's <b>show</b> the values in the Serial Monitor. 🖥️</p>
+  <ul class="rules"><li>${C('Serial.print()')} writes and <b>stays</b> on the same line.</li><li>${C('Serial.println()')} writes and <b>jumps</b> to a new line.</li></ul>
+  <p>🧩 Tap the blocks in the correct order to show ${C('Temperature: 27.5 C')}</p>`,
+  es:'Ahora mostramos los valores en el Monitor Serie. Serial.print() escribe y se queda en la misma línea. Serial.println() escribe y salta a una línea nueva. Toca los bloques en el orden correcto para mostrar "Temperature: 27.5 C".',
+  hint:'First the label (the words), then the value (the number), then the unit and a new line.',
+  render(w){
+    const B=['Serial.print("Temperature: ");','Serial.print(temperature);','Serial.println(" C");'];
+    if(!this.mix) this.mix=[2,0,1];
+    const out={0:'Temperature: ',1:'27.5',2:' C'};
+    const draw=()=>{
+      w.innerHTML=`<div class="puzzle"><div class="pool" aria-label="Blocks">${this.mix.filter(i=>!puz.includes(i)).map(i=>`<button class="blk" data-i="${i}">${esc(B[i])}</button>`).join('')||'<span style="color:var(--muted);font-size:14px">All blocks used.</span>'}</div>
+      <div class="slots" aria-label="Your order">${puz.map((i,n)=>`<button class="blk" data-r="${n}" title="Tap to remove">${n+1}. ${esc(B[i])}</button>`).join('')||'<span style="color:var(--muted);font-size:14px">Tap blocks to put them here.</span>'}</div>
+      <div><small style="color:var(--muted)">Serial Monitor shows:</small><div class="serialline">${esc(puz.map(i=>out[i]).join(''))}</div></div></div>`+mcq('d','Which one jumps to a new line?',[C('Serial.print()'),C('Serial.println()')]);
+      w.querySelectorAll('.pool .blk').forEach(b=>b.onclick=()=>{ puz.push(+b.dataset.i); draw(); });
+      w.querySelectorAll('.slots .blk').forEach(b=>b.onclick=()=>{ puz.splice(+b.dataset.r,1); draw(); });
+      bindMcq(w);
+    }; draw();
+  },
+  check(){ if(puz.length<3) return [false,'Use all 3 blocks.'];
+    if(puz.join()!=='0,1,2') return [false,'Look at the Serial Monitor line. Is it "Temperature: 27.5 C"? Tap a block to remove it.'];
+    if(ans.d===undefined) return [false,'Answer the question too.'];
+    if(ans.d!==1) return [false,'println = print + line. It jumps to a new line.'];
+    return [true,'Great! I added print lines for ALL your sensors. Look at the Serial Monitor preview! 👀']; }
+},
+{ title:'Night light: control the LED',
+  intro:`<p>Let's make a <b>night light</b>: 🌙 when it is dark, the LED turns ON.</p>
+  <p>${C('if')} = if this is true, do this. ${C('else')} = if not, do that.</p>
+  <p><b>HIGH</b> = ON 💡 &nbsp;&nbsp; <b>LOW</b> = OFF ⚫</p>`,
+  es:'Vamos a hacer una luz nocturna: cuando está oscuro, el LED se enciende. "if" = si esto es verdad, haz esto. "else" = si no, haz aquello. HIGH = encendido, LOW = apagado. Algunos módulos LDR dan un número PEQUEÑO en la oscuridad y otros un número GRANDE; si no sabes, elige PEQUEÑO y lo compruebas luego en el Monitor Serie.',
+  hint:'Dark = LED ON = HIGH. If your LDR gives a SMALL number in the dark, use <. If it gives a BIG number, use >.',
+  render(w){
+    const draw=()=>{
+      w.innerHTML=`<p class="qtext">1. Some LDR modules give a <b>small</b> number in the dark. Others give a <b>big</b> number. What does yours do? <small style="color:var(--muted)">(Not sure? Choose small and test it later in the Serial Monitor.)</small></p>
+      <div class="seg" id="dk"><button data-v="small" aria-pressed="${s.dark==='small'}">dark → small</button><button data-v="big" aria-pressed="${s.dark==='big'}">dark → big</button></div>
+      <p class="qtext" style="margin-top:16px">2. Complete the code:</p>
+      <div class="codeblock"><div class="cl"><span class="kw">if</span> (lightValue ${sel('op',['<','>'],s.op,'Comparison')} <input type="number" class="wide" id="thr" value="${s.threshold}" aria-label="Limit"> ) {</div>
+      <div class="cl ind"><span class="fn">digitalWrite</span>(<span class="cn">LED_PIN</span>, ${sel('ifS',['HIGH','LOW'],s.ifS,'LED state when true')});</div>
+      <div class="cl">} <span class="kw">else</span> {</div>
+      <div class="cl ind"><span class="fn">digitalWrite</span>(<span class="cn">LED_PIN</span>, ${sel('elseS',['HIGH','LOW'],s.elseS,'LED state when false')});</div><div class="cl">}</div></div>
+      <div class="sim"><span class="bulb" id="bulb">💡</span><div style="flex:1;min-width:200px"><label for="sl" style="font-size:14px">3. Test your code: move the light 👇 <b>lightValue = <span id="lv">2000</span></b></label><input type="range" id="sl" min="0" max="4095" value="${this.sv??1000}" style="width:100%"><div class="simlab"><span>${s.dark==='big'?'☀️ bright (0)':'🌙 dark (0)'}</span><span>${s.dark==='big'?'🌙 dark (4095)':'☀️ bright (4095)'}</span></div></div></div>`;
+      w.querySelectorAll('#dk button').forEach(b=>b.onclick=()=>{ s.dark=b.dataset.v; save(); draw(); });
+      w.querySelectorAll('select').forEach(x=>x.onchange=()=>{ s[x.dataset.key]=x.value; save(); sim(); });
+      $('#thr').oninput=e=>{ s.threshold=e.target.value===''?'':+e.target.value; save(); sim(); };
+      $('#sl').oninput=e=>{ this.sv=+e.target.value; sim(); };
+      sim();
+    };
+    const sim=()=>{ const v=+$('#sl').value; $('#lv').textContent=v; let on=false;
+      if(s.op && s.ifS && s.elseS && s.threshold!==''){ const t=s.op==='<'?v<s.threshold:v>s.threshold; on=(t?s.ifS:s.elseS)==='HIGH'; }
+      $('#bulb').className='bulb'+(on?'':' off'); $('#bulb').title=on?'LED ON':'LED OFF'; };
+    draw();
+  },
+  check(){ if(!s.dark) return [false,'First, tell me what your LDR does in the dark.'];
+    if(!s.op||!s.ifS||!s.elseS) return [false,'Complete every ? in the code.'];
+    if(!(s.threshold>=1 && s.threshold<=4094)) return [false,'The limit must be a number between 1 and 4094.'];
+    const want=s.dark==='small'?'<':'>';
+    if(s.op!==want) return [false, s.dark==='small'?'In the dark your number is SMALL. The LED turns ON when lightValue is LESS than (&lt;) the limit.':'In the dark your number is BIG. The LED turns ON when lightValue is GREATER than (&gt;) the limit.'];
+    if(s.ifS!=='HIGH') return [false,'Inside the if, it is dark. The LED must turn ON → HIGH.'];
+    if(s.elseS!=='LOW') return [false,'In the else, there is light. The LED turns OFF → LOW.'];
+    return [true,'Your night light works! Later, cover the LDR with your hand and watch the LED. ✋💡']; }
+},
+{ title:'Take a little break',
+  intro:`<p>The loop is super fast! We need a pause so we can read the numbers. ⏱️</p>
+  <p>${C('delay()')} uses <b>milliseconds</b>: 1000 ms = 1 second.</p>`,
+  es:'El loop es súper rápido. Necesitamos una pausa para poder leer los números. delay() usa milisegundos: 1000 ms = 1 segundo. Ojo: el DHT11 es lento y necesita al menos 1 segundo entre lecturas.',
+  hint:'1000 ms = 1 second. The DHT11 is slow 🐢: it needs 1 second or more.',
+  render(w){
+    w.innerHTML=mcq('e',`${C('delay(2000);')} means the ESP32 waits…`,['2 seconds','2 minutes','2000 seconds'])+`<div class="sim"><label for="dl" style="flex-basis:100%;font-size:15px">Choose your pause: <b><span id="dv"></span></b></label><input type="range" id="dl" min="250" max="5000" step="250" value="${s.delay}"></div>`;
+    bindMcq(w); const u=()=>{ $('#dv').textContent=`${s.delay} ms = ${s.delay/1000} s`; }; u();
+    $('#dl').oninput=e=>{ s.delay=+e.target.value; save(); u(); };
+  },
+  check(){ if(ans.e===undefined) return [false,'Answer the question first.'];
+    if(ans.e!==0) return [false,'1000 ms = 1 second. So 2000 ms = …?'];
+    if(s.delay<1000) return [false,'The DHT11 is slow 🐢. It needs at least 1 second (1000 ms) between readings.'];
+    return [true,'Perfect timing! ⏱️ Your code is complete! 🎉']; }
+},
+{ title:'Test it with your real ESP32 🚀', noStars:true, noCheck:true,
+  intro:`<p>Your code is ready! Before you copy it, do a <b>final pin check</b> with your real circuit. Look at every wire and tick the box. ✅</p>`,
+  es:'¡Tu código está listo! Antes de copiarlo, revisa cada cable de tu circuito real y marca la casilla. Cuando todo esté marcado, podrás copiar el código y seguir los pasos para subirlo al ESP32.',
+  hint:'Follow each wire with your finger, from the sensor to the ESP32.',
+  render(w){
+    const items=[...ORDER.map(k=>[k, k==='led'?`My <b>LED</b> long leg (+) goes through a resistor to <b>GPIO ${s.pins[k]}</b>, short leg to GND`:`My <b>${COMP[k].name}</b> ${k==='dht'?'DATA':'AO'} wire is on <b>GPIO ${s.pins[k]}</b>`]),['gnd','All <b>GND</b> wires are connected to GND on the ESP32'],['vcc','Every sensor has power (<b>VCC</b>)']];
+    const all=()=>items.every(([k])=>s.checks[k]);
+    const draw=()=>{
+      const ok=all(); const total=Object.values(s.stars).reduce((a,b)=>a+b,0);
+      w.innerHTML=`<ul class="checklist">${items.map(([k,t])=>`<li><label><input type="checkbox" data-k="${k}" ${s.checks[k]?'checked':''}><span>${t}</span></label></li>`).join('')}</ul>
+      <div class="${ok?'':'locked'}" id="after">
+        <button class="btn go" id="copy2">📋 Copy my code</button>
+        <h3 class="sub">Upload it</h3>
+        <ol class="steps">
+          <li>Open <b>Arduino IDE</b>. Go to <b>Tools → Board → esp32 → ESP32 Dev Module</b>.</li>
+          <li>Install the library: <b>Sketch → Include Library → Manage Libraries</b>. Search <b>DHT sensor library</b> (by Adafruit) and click <b>Install</b>. If it asks, install <b>Adafruit Unified Sensor</b> too.</li>
+          <li>Paste your code. Click <b>✓ Verify</b>.</li>
+          <li>Connect the ESP32 with the USB cable. Go to <b>Tools → Port</b> and choose the COM port.</li>
+          <li>Click <b>→ Upload</b>. If you see <b>Connecting…</b> for a long time, press and hold the <b>BOOT</b> button.</li>
+          <li>Open <b>Tools → Serial Monitor</b> and choose <b>115200 baud</b>. 🎉</li>
+        </ol>
+        <h3 class="sub">Something is wrong? 🔧</h3>
+        <div class="trouble">
+          <div><b>Strange symbols ⸮⸮⸮</b> → the Serial Monitor is not at 115200 baud.</div>
+          <div><b>A sensor always shows 0 or 4095</b> → check the wire and the pin number in your code.</div>
+          <div><b>Temperature shows nan</b> → check the DHT11 wires (VCC, GND, DATA) and DHT_PIN.</div>
+          <div><b>The LED never turns ON</b> → check the long leg (+). Cover the LDR and watch the Light number. Maybe your LDR is the other type (go back to mission 11).</div>
+          <div><b>No port in Tools → Port</b> → try another USB cable. Some cables only charge.</div>
+        </div>
+        <div class="cert"><div style="font-size:44px">🏆</div><h3>${esc(s.name||'Engineer')}</h3><p style="margin:4px 0">built the code for a 5-part ESP32 sensor station.</p><p class="stars">⭐ ${total} / 33</p></div>
+      </div>`;
+      w.querySelectorAll('input[type=checkbox]').forEach(c=>c.onchange=()=>{ s.checks[c.dataset.k]=c.checked; save(); draw(); renderCopy(); if(all()) say('All wires checked! Copy your code and upload it. 🚀','ok'); });
+      $('#copy2').onclick=copyCode;
+    };
+    draw();
+  }
+}
+];
+
+function showRow(k){ const r=validatePin(k); const el=document.getElementById('rm-'+k); if(el){ el.className='rowmsg '+(r.ok?'ok':'bad'); el.textContent=(r.ok?'✅ ':'❌ ')+r.msg; } return r; }
+
+/* ---------- code generation ---------- */
+const pad=(t,n)=>t+' '.repeat(Math.max(0,n-t.length));
+function genLines(){
+  const L=[], add=(t,m)=>L.push({t,m});
+  add('// My ESP32 sensor station'+(s.name?' - by '+s.name:''),0);
+  if(has(4)) add('#include <DHT.h>',4);
+  if(has(3)){ add('',3); add('// Pins: where the wires go',3);
+    ORDER.forEach(k=>{ const p=String(s.pins[k]); add(`const int ${pad(COMP[k].cst,9)} = ${p};${' '.repeat(Math.max(1,4-p.length))}// ${COMP[k].name} (${COMP[k].io})`,3); }); }
+  if(has(4)){ add('',4); add('DHT dht(DHT_PIN, DHT11);',4); }
+  if(has(5)){ add('',5); add('void setup() {',5); add('  Serial.begin(115200);',5);
+    if(has(6)){ ['mq','ky','ldr','led'].forEach(k=>add(`  pinMode(${COMP[k].cst}, ${COMP[k].io});`,6)); add('  dht.begin();',6); }
+    add('}',5); }
+  if(has(7)){ add('',7); add('void loop() {',7); add('  // 1. Read the sensors',7);
+    ANALOG.forEach(k=>add(`  int ${COMP[k].v} = analogRead(${COMP[k].cst});`,7));
+    if(has(8)){ add('  float temperature = dht.readTemperature();',8); add('  float humidity = dht.readHumidity();',8); }
+    if(has(9)){ add('',9); add('  // 2. Show the data in the Serial Monitor',9); add('  Serial.println("------ Sensor data ------");',9);
+      ANALOG.forEach(k=>{ add(`  Serial.print("${COMP[k].label}");`,9); add(`  Serial.println(${COMP[k].v});`,9); });
+      add('  Serial.print("Temperature: ");',9); add('  Serial.print(temperature);',9); add('  Serial.println(" C");',9);
+      add('  Serial.print("Humidity: ");',9); add('  Serial.print(humidity);',9); add('  Serial.println(" %");',9); }
+    if(has(10)){ add('',10); add('  // 3. Night light: LED ON when it is dark',10); add(`  if (lightValue ${s.op} ${s.threshold}) {`,10); add('    digitalWrite(LED_PIN, HIGH);',10); add('  } else {',10); add('    digitalWrite(LED_PIN, LOW);',10); add('  }',10); }
+    if(has(11)){ add('',11); add(`  delay(${s.delay});`,11); }
+    add('}',7); }
+  return L;
+}
+function hl(line){
+  const re=/(\/\/.*$)|("(?:[^"\\]|\\.)*")|(#include|<DHT\.h>)|\b(void|int|float|const|if|else)\b|\b(HIGH|LOW|INPUT|OUTPUT|DHT11)\b|\b(\d+)\b|\b([A-Za-z_][\w.]*)(?=\()/g;
+  let o='',last=0,m;
+  while((m=re.exec(line))){ o+=esc(line.slice(last,m.index)); const c=m[1]?'c-cm':m[2]?'c-st':m[3]?'c-pp':m[4]?'c-kw':m[5]?'c-k2':m[6]?'c-nu':'c-fn'; o+=`<span class="${c}">${esc(m[0])}</span>`; last=re.lastIndex; }
+  return o+esc(line.slice(last));
+}
+function renderCode(){
+  const L=genLines(), box=$('#code');
+  let html=L.map((l,i)=>`<div class="ln${l.m===lastNew&&l.m>0?' new':''}"><span class="num">${i+1}</span><span>${hl(l.t)||' '}</span></div>`).join('');
+  if(L.length<2) html+='<div class="empty">// Your code grows here.<br>// Complete missions to add lines! 🌱</div>';
+  box.innerHTML=html;
+  const first=box.querySelector('.ln.new'); if(first) box.scrollTop=Math.max(0,first.offsetTop-box.offsetTop-40);
+  renderCopy(); restartMonitor();
+}
+function codeText(){ return genLines().map(l=>l.t).join('\n')+'\n'; }
+function finalReady(){ return has(11) && ['mq','ky','ldr','dht','led','gnd','vcc'].every(k=>s.checks[k]); }
+function renderCopy(){ $('#copyslot').innerHTML=finalReady()?'<button class="copybtn" id="copy1">📋 Copy</button>':''; const b=$('#copy1'); if(b) b.onclick=copyCode; }
+function copyCode(){
+  const t=codeText();
+  const done=()=>say('Code copied! Now paste it in Arduino IDE (Ctrl + V). 📋','ok');
+  const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); let ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove(); ok?done():say('I could not copy automatically. Select the code in the dark panel and press Ctrl + C.','bad'); };
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done,fallback); else fallback();
+}
+
+/* ---------- serial monitor preview ---------- */
+let monTimer=null, tick=0;
+function restartMonitor(){
+  clearInterval(monTimer); const mon=$('#monitor'); $('#ledstat').innerHTML='';
+  if(!has(5)){ mon.innerHTML='<span class="dim">The Serial Monitor is closed. Your code has no Serial.begin() yet.</span>'; return; }
+  if(!has(9)){ mon.innerHTML='<span class="dim">Connected at 115200 baud… but your code does not print anything yet. 🤫</span>'; return; }
+  mon.textContent='';
+  const step=()=>{
+    tick++;
+    const air=Math.round(420+Math.random()*260), snd=Math.round(Math.random()<.25?1800+Math.random()*1500:200+Math.random()*500);
+    const light=Math.round(2048+1900*Math.sin(tick/3));
+    const T=(26+Math.random()*2).toFixed(2), H=(62+Math.random()*8).toFixed(2);
+    mon.textContent+=`------ Sensor data ------\nAir (MQ-135): ${air}\nSound (KY-037): ${snd}\nLight (LDR): ${light}\nTemperature: ${T} C\nHumidity: ${H} %\n`;
+    const lines=mon.textContent.split('\n'); if(lines.length>60) mon.textContent=lines.slice(-60).join('\n');
+    mon.scrollTop=mon.scrollHeight;
+    if(has(10)){ const on=s.op==='<'?light<s.threshold:light>s.threshold; $('#ledstat').innerHTML=`LED <span class="bulb${on?'':' off'}" style="font-size:16px">💡</span> ${on?'ON':'OFF'}`; }
+  };
+  step(); monTimer=setInterval(step, has(11)?Math.max(500,s.delay):2000);
+}
+
+/* ---------- mission flow ---------- */
+const SP={ok:'M23 40 Q32 48 41 40',bad:'M24 45 Q32 38 40 45',mid:'M24 42 L40 42'};
+function sparky(){ return `<svg viewBox="0 0 64 64" class="sparky" aria-hidden="true"><g stroke="var(--muted)" stroke-width="3" stroke-linecap="round">${[20,28,36,44].map(v=>`<line x1="${v}" y1="6" x2="${v}" y2="13"/><line x1="${v}" y1="51" x2="${v}" y2="58"/><line x1="6" y1="${v}" x2="13" y2="${v}"/><line x1="51" y1="${v}" x2="58" y2="${v}"/>`).join('')}</g><rect x="12" y="12" width="40" height="40" rx="9" fill="var(--teal)"/><circle cx="25" cy="29" r="5" fill="#fff"/><circle cx="39" cy="29" r="5" fill="#fff"/><circle cx="26" cy="30" r="2.4" fill="#16222A"/><circle cx="40" cy="30" r="2.4" fill="#16222A"/><path id="mouth" d="${SP.mid}" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`; }
+function say(msg,mood){ const b=$('#say'); if(!b) return; b.innerHTML=msg; b.className='say'+(mood?' '+mood:''); const m=$('#mouth'); if(m) m.setAttribute('d',SP[mood]||SP.mid); }
+
+function renderTrack(){
+  $('#track').innerHTML=M.map((m,i)=>{ const d=has(i); return `<button class="${d?'done':''}${i===cur?' cur':''}" ${i>s.max?'disabled':''} data-i="${i}" aria-label="Mission ${i+1}: ${esc(m.title)}${d?' (done)':''}" ${d?`style="background:var(--${WCOL[i%5]})"`:''}>${i+1}</button>`; }).join('');
+  $('#track').querySelectorAll('button').forEach(b=>b.onclick=()=>show(+b.dataset.i));
+  $('#total').textContent=Object.values(s.stars).reduce((a,b)=>a+b,0);
+  $('#who').textContent=s.name?'👤 '+s.name:'';
+}
+function show(i){
+  cur=i; s.step=i; save(); tries=0; ans={}; if(i===9) puz=has(9)?[0,1,2]:[];
+  const m=M[i];
+  $('#stage').innerHTML=`<p class="mnum">Mission ${i+1} of ${M.length}</p><h2>${m.title}</h2><div class="intro">${m.intro}</div><div class="es" id="es" hidden>🇪🇸 ${m.es}</div><div id="work"></div>
+  <div class="actions">${m.noCheck?'':`<button class="btn primary" id="check">${m.checkLabel||'Check my answer'}</button>`}<button class="btn ghost" id="hint">💡 Hint</button><button class="btn ghost" id="esb" aria-expanded="false">🇪🇸 Español</button></div>
+  <div id="winbox"></div><div class="bubble">${sparky()}<div class="say" id="say" aria-live="polite"></div></div>`;
+  m.render($('#work'));
+  say(has(i)&&!m.noCheck?'You already finished this mission. You can change things and check again.':(i===0?"Hi! I'm Sparky, your ESP32 helper. ⚡":"Read, think, and try! I'm here to help. 🙂"));
+  if($('#check')) $('#check').onclick=doCheck;
+  $('#hint').onclick=()=>{ tries++; say('💡 '+esc(m.hint)); };
+  $('#esb').onclick=e=>{ const es=$('#es'); es.hidden=!es.hidden; e.currentTarget.setAttribute('aria-expanded',!es.hidden); };
+  if(has(i)&&i<M.length-1) showWin(i,false);
+  renderTrack(); renderCopy();
+  if(window.innerWidth<960) $('#stage').scrollIntoView({block:'start'});
+}
+function doCheck(){
+  const m=M[cur]; const [ok,msg]=m.check();
+  if(!ok){ tries++; say(msg,'bad'); return; }
+  const first=!has(cur);
+  if(first){ s.done.push(cur); if(!m.noStars) s.stars[cur]=tries===0?3:tries<=2?2:1; }
+  s.max=Math.max(s.max,cur+1); save();
+  say(msg,'ok'); lastNew=cur; renderCode(); renderTrack(); showWin(cur,first);
+  if(first) confetti();
+}
+function showWin(i,fresh){
+  const st=s.stars[i]; const m=M[i];
+  $('#winbox').innerHTML=`<div class="win">${m.noStars?'':`<span class="stars" aria-label="${st} of 3 stars">${'⭐'.repeat(st)}${'☆'.repeat(3-st)}</span>`}<b>${fresh?'Mission complete!':'Mission done'}</b><button class="btn go" id="next">Next mission</button></div>`;
+  $('#next').onclick=()=>show(Math.min(i+1,M.length-1));
+}
+
+/* ---------- confetti (one small celebration) ---------- */
+function confetti(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c=$('#confetti'), x=c.getContext('2d'); c.width=innerWidth; c.height=innerHeight;
+  const cols=['#E5383B','#E9A800','#1F6FEB','#2DA44E','#F07B1D'];
+  const P=Array.from({length:70},()=>({x:innerWidth/2,y:innerHeight/3,vx:(Math.random()-.5)*12,vy:-Math.random()*10-3,w:10,h:4,r:Math.random()*6,c:cols[Math.floor(Math.random()*5)]}));
+  let f=0; (function loop(){ x.clearRect(0,0,c.width,c.height); P.forEach(p=>{ p.vy+=.35; p.x+=p.vx; p.y+=p.vy; p.r+=.15; x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.w/2,-p.h/2,p.w,p.h); x.restore(); }); if(++f<75) requestAnimationFrame(loop); else x.clearRect(0,0,c.width,c.height); })();
+}
+
+$('#fab').onclick=()=>$('#ide').scrollIntoView({behavior:'smooth',block:'start'});
+$('#reset').onclick=()=>{ if(confirm('Start again from mission 1? Your progress will be deleted.')){ try{ localStorage.removeItem(KEY); }catch(e){} s=load(); s=JSON.parse(JSON.stringify(DEF)); lastNew=-1; renderCode(); show(0); } };
+
+renderCode(); show(Math.min(s.step,s.max));
+</script>
+</body>
+</html>
