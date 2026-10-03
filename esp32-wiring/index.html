@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ESP32 Wiring Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E4E9EE; --hole:#C9D1D9; --card:#FBFCFD; --ink:#1B2532; --muted:#566475; --line:#CBD3DB;
+  --teal:#00878A; --red:#E5383B; --blue:#1F6FEB; --green:#2DA44E; --yellow:#E9A800; --orange:#F07B1D; --purple:#8957E5;
+  --ok-bg:#E2F4E7; --ok-ink:#1D6B35; --bad-bg:#FCE6E6; --bad-ink:#A3191C; --warn-bg:#FFF3D1;
+  --sans:'Lexend','Segoe UI',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11181F; --hole:#1C2630; --card:#19222C; --ink:#E5ECF2; --muted:#9AA8B6; --line:#2C3946;
+    --ok-bg:#15301F; --ok-ink:#7FD69A; --bad-bg:#3A1A1C; --bad-ink:#FF9C9E; --warn-bg:#352B10;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11181F; --hole:#1C2630; --card:#19222C; --ink:#E5ECF2; --muted:#9AA8B6; --line:#2C3946;
+  --ok-bg:#15301F; --ok-ink:#7FD69A; --bad-bg:#3A1A1C; --bad-ink:#FF9C9E; --warn-bg:#352B10;
+}
+:root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+*,*::before,*::after{ box-sizing:inherit; }
+body{ margin:0; font-family:var(--sans); color:var(--ink); line-height:1.55; font-size:17px;
+  background-color:var(--bg); background-image:radial-gradient(var(--hole) 1.7px, transparent 2px); background-size:20px 20px; }
+button,input{ font:inherit; color:inherit; }
+:focus-visible{ outline:3px solid var(--blue); outline-offset:2px; }
+code{ font-family:var(--mono); font-size:.88em; background:rgba(0,135,138,.12); padding:.08em .35em; border-radius:4px; }
+
+.wrap{ max-width:1260px; margin:0 auto; padding:20px 18px 60px; }
+header.top{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+.brand h1{ margin:0; font-size:clamp(30px,5vw,46px); font-weight:800; letter-spacing:-.02em; line-height:1.05; }
+.brand h1 .wire{ display:block; height:8px; margin-top:8px; width:min(340px,80%); border-radius:4px;
+  background:linear-gradient(90deg,#39424D 0 33%,var(--red) 33% 66%,var(--yellow) 66%); }
+.brand p{ margin:10px 0 0; color:var(--muted); font-size:15px; }
+.score{ background:var(--card); border:2px solid var(--line); border-radius:999px; padding:6px 16px; font-weight:700; }
+.score small{ color:var(--muted); font-weight:500; }
+
+.track{ position:relative; display:flex; justify-content:space-between; align-items:center; margin:8px 0 22px; padding:0 4px; }
+.track::before{ content:""; position:absolute; left:14px; right:14px; top:50%; height:4px; background:var(--line); transform:translateY(-50%); border-radius:2px; }
+.track button{ position:relative; width:32px; height:32px; border-radius:50%; border:3px solid var(--line); background:var(--card); font-size:13px; font-weight:700; cursor:pointer; padding:0; }
+.track button.done{ color:#fff; border-color:transparent; background:var(--teal); }
+.track button.cur{ box-shadow:0 0 0 4px var(--card),0 0 0 7px var(--ink); }
+.track button:disabled{ cursor:not-allowed; color:var(--muted); opacity:.7; }
+
+.grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,500px); gap:22px; align-items:start; }
+@media (max-width:980px){ .grid{ grid-template-columns:1fr; } }
+.mission{ background:var(--card); border:2px solid var(--line); border-radius:16px; padding:24px clamp(16px,3vw,30px); }
+.mnum{ color:var(--muted); font-size:14px; font-weight:500; margin:0; }
+.mission h2{ margin:2px 0 12px; font-size:clamp(24px,3.4vw,32px); font-weight:800; letter-spacing:-.01em; line-height:1.15; }
+.intro p{ margin:0 0 10px; max-width:66ch; }
+.intro ul,.intro ol{ margin:6px 0 12px; padding-left:22px; } .intro li{ margin:6px 0; }
+.note{ background:var(--warn-bg); border-radius:8px; padding:8px 12px; font-size:15px; }
+.es{ background:rgba(31,111,235,.09); border-left:4px solid var(--blue); border-radius:6px; padding:10px 14px; margin:8px 0 14px; font-size:15px; }
+.r{ color:var(--red); font-weight:700; } .b{ color:var(--blue); font-weight:700; }
+table.pins{ border-collapse:collapse; margin:8px 0 12px; font-size:15px; }
+table.pins td,table.pins th{ border:1px solid var(--line); padding:6px 10px; text-align:left; }
+table.pins th{ background:var(--bg); font-weight:600; }
+
+.diag-m{ display:none; margin:14px 0; }
+@media (max-width:980px){ .diag-m{ display:block; } aside .diagbox{ display:none; } }
+.diagbox{ background:var(--card); border:2px solid var(--line); border-radius:12px; padding:8px; }
+svg.dg{ width:100%; height:auto; display:block; }
+.dg .lab{ font:600 9px var(--mono); fill:#DDE6EE; }
+.dg .mlab{ font:700 13px var(--sans); fill:#fff; }
+.dg .plab{ font:600 10px var(--mono); fill:#fff; }
+.dg .tag{ font:600 11px var(--sans); fill:#1B2532; }
+.dg .w{ fill:none; stroke-linecap:round; stroke-linejoin:round; }
+.dg .old{ opacity:.4; }
+.dg .now .w{ stroke-width:5; }
+.zoomhint{ font-size:13px; color:var(--muted); margin:6px 4px 0; }
+
+.checks{ list-style:none; padding:0; margin:14px 0; }
+.checks label{ display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+.checks input{ width:22px; height:22px; accent-color:var(--green); flex:none; margin-top:2px; }
+.q{ margin:16px 0; }
+.qtext{ font-weight:500; margin:0 0 8px; }
+.opts{ display:flex; flex-wrap:wrap; gap:8px; }
+.opt{ border:2px solid var(--line); background:var(--bg); border-radius:10px; padding:8px 14px; cursor:pointer; text-align:left; }
+.opt[aria-pressed="true"]{ border-color:var(--teal); background:rgba(0,135,138,.14); }
+
+.actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.btn{ border:2px solid var(--ink); background:transparent; border-radius:10px; padding:10px 18px; font-weight:700; cursor:pointer; }
+.btn.primary{ background:var(--ink); color:var(--card); }
+.btn.ghost{ border-color:var(--line); font-weight:500; }
+.btn.go{ background:var(--green); border-color:var(--green); color:#fff; }
+.bubble{ display:flex; gap:12px; align-items:flex-start; margin-top:20px; }
+.sparky{ width:54px; height:54px; flex:none; }
+.say{ flex:1; background:var(--bg); border-radius:4px 14px 14px 14px; padding:10px 14px; font-size:15px; min-height:44px; }
+.say.ok{ background:var(--ok-bg); color:var(--ok-ink); } .say.bad{ background:var(--bad-bg); color:var(--bad-ink); }
+.win{ margin-top:16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; border:2px solid var(--green); border-radius:12px; padding:12px 16px; }
+.stars{ font-size:24px; letter-spacing:2px; }
+
+aside.side{ position:sticky; top:calc(14px + env(safe-area-inset-top,0px)); display:flex; flex-direction:column; gap:12px; }
+@media (max-width:980px){ aside.side{ position:static; } }
+.conn{ background:var(--card); border:2px solid var(--line); border-radius:12px; padding:12px 16px; }
+.conn h3{ margin:0 0 6px; font-size:16px; }
+.conn ul{ list-style:none; margin:0; padding:0; font-size:14px; max-height:260px; overflow:auto; }
+.conn li{ display:flex; gap:8px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line); }
+.conn li i{ width:12px; height:12px; border-radius:50%; flex:none; }
+.conn .empty{ color:var(--muted); font-size:14px; }
+.cert{ margin-top:18px; text-align:center; border:3px solid var(--ink); border-radius:16px; padding:22px; }
+.cert h3{ margin:4px 0; font-size:24px; }
+footer{ margin-top:26px; color:var(--muted); font-size:13px; text-align:center; }
+footer button{ background:none; border:0; text-decoration:underline; color:inherit; cursor:pointer; font-size:13px; }
+#confetti{ position:fixed; inset:0; pointer-events:none; z-index:20; width:100%; height:100%; }
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>ESP32 Wiring Quest<span class="wire"></span></h1>
+      <p>Connect your sensor station, one wire at a time.</p>
+    </div>
+    <div class="score">⭐ <span id="total">0</span><small> / <span id="max">27</span></small></div>
+  </header>
+  <nav class="track" id="track" aria-label="Steps"></nav>
+  <div class="grid">
+    <main class="mission" id="stage"></main>
+    <aside class="side">
+      <div class="diagbox" id="diag"></div>
+      <div class="conn"><h3>🔌 My connections</h3><ul id="connlist"></ul></div>
+    </aside>
+  </div>
+  <footer>Projects, 10th grade. Your progress is saved on this device. <button id="reset">Start again</button></footer>
+</div>
+<script>
+const $=q=>document.querySelector(q);
+const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const KEY='esp32-wiring-quest-v1';
+const DEF={step:0,max:0,done:[],stars:{},checks:{}};
+function load(){ try{ const r=localStorage.getItem(KEY); if(r) return Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(r)); }catch(e){} return JSON.parse(JSON.stringify(DEF)); }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(s)); }catch(e){} }
+let s=load(), cur=0, tries=0, ans={};
+const has=i=>s.done.includes(i);
+
+/* ---------- colors ---------- */
+const K={gnd:'#39424D',pwr:'#E5383B',mq:'#F07B1D',ky:'#E9A800',dht:'#2DA44E',ldr:'#8957E5',led:'#00878A'};
+
+/* ---------- diagram ---------- */
+const LP=['EN','VP','VN','D34','D35','D32','D33','D25','D26','D27','D14','D12','D13','GND','VIN'];
+const RP=['D23','D22','TX0','RX0','D21','D19','D18','D5','TX2','RX2','D4','D2','D15','GND','3V3'];
+const py=i=>60+i*19;
+// pins highlighted per step
+const HL={1:['L:GND'],2:['R:3V3'],6:['R:D4','L:D35','L:D34'],7:['L:D32'],8:['R:D2']};
+function wire(pts,color,step,extra=''){ return {step,svg:`<polyline class="w" points="${pts.map(p=>p.join(',')).join(' ')}" stroke="${color}" stroke-width="3.5" ${extra}/>`}; }
+function grp(step,svg){ return {step,svg}; }
+function resistorH(x1,x2,y,bands){ const w=x2-x1; let o=`<rect x="${x1}" y="${y-6}" width="${w}" height="12" rx="5" fill="#E8D3A8" stroke="#8C7550"/>`; bands.forEach((c,i)=>{ o+=`<rect x="${x1+8+i*8}" y="${y-6}" width="4" height="12" fill="${c}"/>`; }); return o; }
+function resistorV(x,y1,y2,bands){ const h=y2-y1; let o=`<rect x="${x-6}" y="${y1}" width="12" height="${h}" rx="5" fill="#E8D3A8" stroke="#8C7550"/>`; bands.forEach((c,i)=>{ o+=`<rect x="${x-6}" y="${y1+8+i*8}" width="12" height="4" fill="${c}"/>`; }); return o; }
+const ITEMS=[
+  // step 1: GND
+  wire([[252,py(13)],[203,py(13)]],K.gnd,1),
+  // step 2: 3V3
+  wire([[388,py(14)],[455,py(14)]],K.pwr,2),
+  // step 3: bridges
+  wire([[203,582],[203,603],[437,603],[437,582]],K.gnd,3),
+  wire([[185,582],[185,622],[455,622],[455,582]],K.pwr,3),
+  // step 4: module GND
+  wire([[150,160],[203,160]],K.gnd,4), wire([[150,405],[203,405]],K.gnd,4), wire([[490,300],[437,300]],K.gnd,4),
+  // step 5: module VCC
+  wire([[150,182],[185,182]],K.pwr,5), wire([[150,380],[185,380]],K.pwr,5), wire([[490,275],[455,275]],K.pwr,5),
+  // step 6: signals
+  wire([[490,250],[388,250]],K.dht,6), wire([[150,136],[252,136]],K.ky,6), wire([[150,455],[222,455],[222,117],[252,117]],K.mq,6),
+  // step 7: LDR + 10k
+  grp(7,`<g>
+    <line x1="185" y1="500" x2="232" y2="500" stroke="#9AA0A6" stroke-width="2.5"/>
+    <rect x="232" y="488" width="50" height="24" rx="12" fill="#F3E2B3" stroke="#B8860B"/>
+    <path d="M238 500 l5 -6 l5 12 l5 -12 l5 12 l5 -12 l5 12 l5 -6" fill="none" stroke="#C0392B" stroke-width="1.6"/>
+    <line x1="282" y1="500" x2="310" y2="500" stroke="#9AA0A6" stroke-width="2.5"/>
+    <line x1="310" y1="500" x2="310" y2="550" stroke="#9AA0A6" stroke-width="2.5"/>
+    <line x1="310" y1="550" x2="285" y2="550" stroke="#9AA0A6" stroke-width="2.5"/>
+    ${resistorH(245,285,550,['#7B4A12','#111','#F07B1D'])}
+    <line x1="245" y1="550" x2="203" y2="550" stroke="#9AA0A6" stroke-width="2.5"/>
+    <circle cx="310" cy="500" r="4.5" fill="${K.ldr}"/>
+    <text x="257" y="478" class="tag" text-anchor="middle">LDR</text>
+    <text x="265" y="574" class="tag" text-anchor="middle">10 kΩ</text>
+    <text x="318" y="520" class="tag">row</text></g>`),
+  wire([[310,500],[310,365],[230,365],[230,py(5)],[252,py(5)]],K.ldr,7),
+  // step 8: LED + 220
+  wire([[388,py(11)],[408,py(11)],[408,398]],K.led,8),
+  grp(8,`<g>
+    ${resistorV(408,398,442,['#E5383B','#E5383B','#7B4A12'])}
+    <line x1="408" y1="442" x2="408" y2="462" stroke="#9AA0A6" stroke-width="2.5"/>
+    <path d="M396 462 h24 l-12 20 z" fill="#FF6B6B" stroke="#A3191C"/>
+    <line x1="396" y1="483" x2="420" y2="483" stroke="#A3191C" stroke-width="2.5"/>
+    <line x1="408" y1="483" x2="408" y2="505" stroke="#9AA0A6" stroke-width="2.5"/>
+    <line x1="408" y1="505" x2="437" y2="505" stroke="#9AA0A6" stroke-width="2.5"/>
+    <text x="370" y="424" class="tag" text-anchor="end">220 Ω</text>
+    <text x="388" y="470" class="tag" text-anchor="end">+ long leg</text>
+    <text x="370" y="500" class="tag" text-anchor="end">LED</text></g>`)
+];
+function diagram(step){
+  let o='<svg viewBox="0 0 640 640" class="dg" role="img" aria-label="Breadboard wiring diagram for this step">';
+  o+='<defs><pattern id="holes" width="15" height="15" patternUnits="userSpaceOnUse"><circle cx="7.5" cy="7.5" r="1.7" fill="#C3C8BE"/></pattern></defs>';
+  // breadboard
+  o+='<rect x="168" y="18" width="304" height="574" rx="10" fill="#F4F5F2" stroke="#C9CDC4" stroke-width="2"/>';
+  o+='<rect x="222" y="30" width="196" height="550" fill="url(#holes)"/><rect x="316" y="30" width="8" height="550" fill="#E2E4DF"/>';
+  [[185,'#E5383B'],[203,'#1F6FEB'],[437,'#1F6FEB'],[455,'#E5383B']].forEach(([x,c])=>{
+    o+=`<line x1="${x+(x<300?(x===185?-8:8):(x===437?-8:8))}" y1="30" x2="${x+(x<300?(x===185?-8:8):(x===437?-8:8))}" y2="580" stroke="${c}" stroke-width="2"/>`;
+    for(let y=36;y<580;y+=15) o+=`<circle cx="${x}" cy="${y}" r="1.8" fill="#B9BEB4"/>`;
+  });
+  o+='<text x="177" y="14" fill="#E5383B" font-weight="700" font-size="14" text-anchor="middle">+</text><text x="211" y="14" fill="#1F6FEB" font-weight="700" font-size="16" text-anchor="middle">−</text>';
+  o+='<text x="429" y="14" fill="#1F6FEB" font-weight="700" font-size="16" text-anchor="middle">−</text><text x="463" y="14" fill="#E5383B" font-weight="700" font-size="14" text-anchor="middle">+</text>';
+  // ESP32
+  o+='<rect x="240" y="40" width="160" height="300" rx="8" fill="#1D2D3A"/><rect x="278" y="64" width="84" height="64" rx="4" fill="#9AA5B1"/>';
+  o+='<text x="320" y="101" text-anchor="middle" font-weight="700" font-size="14" fill="#1D2D3A">ESP32</text><rect x="300" y="338" width="40" height="16" rx="3" fill="#B8C0C8"/>';
+  const hl=HL[step]||[];
+  LP.forEach((l,i)=>{ const on=hl.includes('L:'+l); o+=`<circle cx="252" cy="${py(i)}" r="${on?6:4.5}" fill="${on?'#FFD84D':'#C6CDD4'}" stroke="${on?'#fff':'none'}" stroke-width="2"/><text x="262" y="${py(i)+3}" class="lab"${on?' style="fill:#FFD84D"':''}>${l}</text>`; });
+  RP.forEach((l,i)=>{ const on=hl.includes('R:'+l); o+=`<circle cx="388" cy="${py(i)}" r="${on?6:4.5}" fill="${on?'#FFD84D':'#C6CDD4'}" stroke="${on?'#fff':'none'}" stroke-width="2"/><text x="378" y="${py(i)+3}" class="lab" text-anchor="end"${on?' style="fill:#FFD84D"':''}>${l}</text>`; });
+  // modules (faded until used)
+  const mo=step>=4?1:.45;
+  o+=`<g opacity="${mo}"><rect x="20" y="110" width="120" height="108" rx="6" fill="#24408E"/><circle cx="48" cy="164" r="15" fill="#C9CDD2" stroke="#8A9199" stroke-width="2"/><text x="80" y="104" class="tag" text-anchor="middle">KY-037</text>`;
+  [['AO',136],['G',160],['+',182],['DO',204]].forEach(([l,y])=>{ o+=`<line x1="140" y1="${y}" x2="150" y2="${y}" stroke="#C6CDD4" stroke-width="3"/><text x="134" y="${y+3.5}" class="plab" text-anchor="end">${l}</text>`; });
+  o+=`<rect x="20" y="365" width="120" height="110" rx="6" fill="#1D3B6E"/><circle cx="55" cy="420" r="22" fill="#B9C0C7" stroke="#7D858D" stroke-width="3"/><circle cx="55" cy="420" r="12" fill="none" stroke="#7D858D" stroke-dasharray="2 2"/><text x="80" y="359" class="tag" text-anchor="middle">MQ-135</text>`;
+  [['VCC',380],['GND',405],['DO',430],['AO',455]].forEach(([l,y])=>{ o+=`<line x1="140" y1="${y}" x2="150" y2="${y}" stroke="#C6CDD4" stroke-width="3"/><text x="134" y="${y+3.5}" class="plab" text-anchor="end">${l}</text>`; });
+  o+=`<rect x="500" y="225" width="115" height="95" rx="6" fill="#4A90D9"/><rect x="560" y="238" width="44" height="70" rx="3" fill="#DDE6EE"/>`;
+  for(let y=244;y<306;y+=8) o+=`<line x1="564" y1="${y}" x2="600" y2="${y}" stroke="#9AB3CC" stroke-width="2"/>`;
+  o+=`<text x="557" y="219" class="tag" text-anchor="middle">DHT11</text>`;
+  [['OUT',250],['+',275],['−',300]].forEach(([l,y])=>{ o+=`<line x1="490" y1="${y}" x2="500" y2="${y}" stroke="#C6CDD4" stroke-width="3"/><text x="506" y="${y+3.5}" class="plab">${l}</text>`; });
+  o+='</g>';
+  // wires and parts
+  ITEMS.forEach(it=>{ if(it.step>step) return; o+=`<g class="${it.step===step?'now':'old'}">${it.svg}</g>`; });
+  return o+'</svg>';
+}
+
+/* ---------- connection list ---------- */
+const CONN={
+  1:[[K.gnd,'ESP32 GND → blue line']],
+  2:[[K.pwr,'ESP32 3V3 → red line']],
+  3:[[K.gnd,'Blue line left → blue line right'],[K.pwr,'Red line left → red line right']],
+  4:[[K.gnd,'DHT11 − → blue line'],[K.gnd,'KY-037 G → blue line'],[K.gnd,'MQ-135 GND → blue line']],
+  5:[[K.pwr,'DHT11 + → red line'],[K.pwr,'KY-037 + → red line'],[K.pwr,'MQ-135 VCC → red line']],
+  6:[[K.dht,'DHT11 OUT → GPIO 4 (INPUT)'],[K.ky,'KY-037 AO → GPIO 35 (INPUT)'],[K.mq,'MQ-135 AO → GPIO 34 (INPUT)']],
+  7:[[K.ldr,'LDR → red line + row'],[K.ldr,'10 kΩ: row → blue line'],[K.ldr,'Row → GPIO 32 (INPUT)']],
+  8:[[K.led,'GPIO 2 (OUTPUT) → 220 Ω → LED +'],[K.led,'LED − → blue line']]
+};
+function renderConn(){
+  const li=[]; Object.keys(CONN).forEach(k=>{ if(has(+k)) CONN[k].forEach(([c,t])=>li.push(`<li><i style="background:${c}"></i>${esc(t)}</li>`)); });
+  $('#connlist').innerHTML=li.join('')||'<li class="empty">No wires yet. Start with step 1!</li>';
+}
+
+/* ---------- steps ---------- */
+const STEPS=[
+{ title:'Get ready 🧰',
+  intro:`<p>In this guide you connect all the parts of your sensor station, step by step. 🔌</p>
+  <p class="note">⚠️ <b>Golden rule:</b> the USB cable is <b>unplugged</b> while you connect wires.</p><p>Check that you have everything:</p>`,
+  es:'En esta guía vas a conectar todos los componentes de tu estación paso a paso. Regla de oro: el cable USB debe estar DESCONECTADO mientras conectas los cables. Revisa que tengas todos los materiales.',
+  checks:['ESP32 and breadboard','DHT11, KY-037 and MQ-135','LDR and a <b>10 kΩ</b> resistor (brown, black, orange)','LED and a <b>220 Ω</b> resistor (red, red, brown)','Jumper wires: <b>male-male</b> and <b>male-female</b>','The USB cable is <b>unplugged</b>'],
+  q:['While you connect wires, the USB cable is…',['Plugged in','Unplugged'],1,'If the power is ON, a wrong wire can burn a part. 🔥 Always unplug first!'],
+  ok:"You're ready! Let's connect the first wire. 🚀" },
+{ title:'GND to the blue line',
+  intro:`<p>The breadboard has two long lines on each side: <span class="r">red (+)</span> for power and <span class="b">blue (−)</span> for GND (ground).</p>
+  <p>Connect a <b>male-male</b> jumper from the ESP32 <b>GND</b> pin to the <span class="b">blue line</span>.</p>
+  <p class="note">💡 Tip: use a <b>black</b> wire for GND. It's a color rule that helps everybody.</p>`,
+  es:'El protoboard tiene dos líneas largas a cada lado: roja (+) para la energía y azul (−) para GND (tierra). Conecta un jumper macho-macho desde el pin GND del ESP32 a la línea azul. Consejo: usa un cable negro para GND.',
+  checks:['ESP32 <b>GND</b> → <span class="b">blue line</span>'],
+  q:['GND means…',['Ground (0 V, the minus −)','Power (+)','Signal'],0,'GND is the ground: 0 volts, the minus (−). It always goes to the blue line.'],
+  ok:'GND is connected. ⚫ That is the base of every circuit!' },
+{ title:'3V3 to the red line',
+  intro:`<p>Connect a <b>male-male</b> jumper from the ESP32 <b>3V3</b> pin to the <span class="r">red line</span>.</p>
+  <p class="note">ℹ️ We use <b>3V3</b> (3.3 volts), not VIN. All our sensors work with 3.3 V, and it is safe for the ESP32 pins.</p>
+  <p class="note">💡 Tip: use a <b>red</b> wire for power.</p>`,
+  es:'Conecta un jumper macho-macho desde el pin 3V3 del ESP32 a la línea roja. Usamos 3V3 (3.3 voltios), no VIN: todos nuestros sensores funcionan con 3.3 V y es seguro para los pines del ESP32. Consejo: usa un cable rojo para la energía.',
+  checks:['ESP32 <b>3V3</b> → <span class="r">red line</span>'],
+  q:['What voltage does the red line have now?',['5 V','3.3 V','12 V'],1,'The red line is connected to 3V3. So it has 3.3 V.'],
+  ok:'Power is connected. 🔴 Your red line has 3.3 V.' },
+{ title:'Connect both sides',
+  intro:`<p>The left side and the right side of the breadboard are <b>not</b> connected. Use two <b>male-male</b> jumpers:</p>
+  <ul><li>Left <span class="b">blue</span> line → right <span class="b">blue</span> line</li><li>Left <span class="r">red</span> line → right <span class="r">red</span> line</li></ul>
+  <p class="note">⚡ <b>Never</b> connect a red line to a blue line. That is a <b>short circuit</b>!</p>`,
+  es:'El lado izquierdo y el derecho del protoboard NO están conectados. Usa dos jumpers macho-macho: línea azul izquierda a línea azul derecha, y línea roja izquierda a línea roja derecha. Nunca conectes una línea roja con una azul: eso es un cortocircuito.',
+  checks:['Left <span class="b">blue</span> → right <span class="b">blue</span>','Left <span class="r">red</span> → right <span class="r">red</span>'],
+  q:['Why do we connect both sides?',['So both sides have power and GND','To make the circuit faster','It is only decoration'],0,'Without these wires, one side has no power. Now both sides have 3.3 V and GND.'],
+  ok:'Both sides have power and GND now. 🔁' },
+{ title:'All GND wires',
+  intro:`<p>Every part needs GND. Use <b>male-female</b> jumpers: the <b>female</b> end goes on the sensor pin, the <b>male</b> end goes on the <span class="b">blue line</span>.</p>
+  <p>The GND pin can have different names:</p>
+  <table class="pins"><tr><th>Part</th><th>GND pin</th><th>Goes to</th></tr><tr><td>DHT11</td><td><b>−</b> (or GND)</td><td class="b">blue line</td></tr><tr><td>KY-037</td><td><b>G</b></td><td class="b">blue line</td></tr><tr><td>MQ-135</td><td><b>GND</b></td><td class="b">blue line</td></tr></table>`,
+  es:'Todos los componentes necesitan GND. Usa jumpers macho-hembra: el extremo hembra va en el pin del sensor y el macho en la línea azul. El pin GND puede tener nombres diferentes: − en el DHT11, G en el KY-037 y GND en el MQ-135.',
+  checks:['DHT11 <b>−</b> → <span class="b">blue line</span>','KY-037 <b>G</b> → <span class="b">blue line</span>','MQ-135 <b>GND</b> → <span class="b">blue line</span>'],
+  q:['On the KY-037, the pin G means…',['Green','GND','Gas'],1,'G = GND (ground). It goes to the blue line.'],
+  ok:'All GND wires are in the blue line. ⚫⚫⚫' },
+{ title:'All VCC wires',
+  intro:`<p>Now the power. The power pin can say <b>VCC</b>, <b>+</b> or <b>5V</b>. Today, all of them go to the <span class="r">red line (3.3 V)</span>.</p>
+  <table class="pins"><tr><th>Part</th><th>Power pin</th><th>Goes to</th></tr><tr><td>DHT11</td><td><b>+</b></td><td class="r">red line</td></tr><tr><td>KY-037</td><td><b>+</b></td><td class="r">red line</td></tr><tr><td>MQ-135</td><td><b>VCC</b></td><td class="r">red line</td></tr></table>`,
+  es:'Ahora la energía. El pin de energía puede decir VCC, + o 5V. Hoy todos van a la línea roja (3.3 V): + del DHT11, + del KY-037 y VCC del MQ-135.',
+  checks:['DHT11 <b>+</b> → <span class="r">red line</span>','KY-037 <b>+</b> → <span class="r">red line</span>','MQ-135 <b>VCC</b> → <span class="r">red line</span>'],
+  q:['The MQ-135 pin says VCC. Where does it go today?',['Blue line','Red line (3.3 V)','GPIO 34'],1,'VCC is power. Power goes to the red line.'],
+  ok:'All the sensors have power now. 🔴🔴🔴' },
+{ title:'Signal wires',
+  intro:`<p>The signal wire carries the <b>information</b> from the sensor to the ESP32. These ESP32 pins work as <b>INPUTS</b> ⬅️. Use <b>male-female</b> jumpers.</p>
+  <table class="pins"><tr><th>Part</th><th>Signal pin</th><th>ESP32 pin</th></tr><tr><td>DHT11</td><td><b>OUT</b></td><td><b>GPIO 4</b> (D4)</td></tr><tr><td>KY-037</td><td><b>AO</b></td><td><b>GPIO 35</b> (D35)</td></tr><tr><td>MQ-135</td><td><b>AO</b></td><td><b>GPIO 34</b> (D34)</td></tr></table>
+  <p class="note">🚫 The <b>DO</b> pins on the KY-037 and MQ-135 stay <b>free</b>. We don't use them.</p>`,
+  es:'El cable de señal lleva la información del sensor al ESP32. Estos pines del ESP32 funcionan como ENTRADAS (INPUT). Usa jumpers macho-hembra: OUT del DHT11 al GPIO 4, AO del KY-037 al GPIO 35 y AO del MQ-135 al GPIO 34. Los pines DO del KY-037 y del MQ-135 quedan libres.',
+  checks:['DHT11 <b>OUT</b> → <b>GPIO 4</b>','KY-037 <b>AO</b> → <b>GPIO 35</b>','MQ-135 <b>AO</b> → <b>GPIO 34</b>','The <b>DO</b> pins are free'],
+  q:['Why do the KY-037 and MQ-135 use the AO pin?',['AO = analog out: many values','AO = always on','AO is another GND'],0,'AO = Analog Out. It gives many values (0 to 4095), not only 0 or 1.'],
+  ok:'Three sensors can talk to the ESP32 now! 📡' },
+{ title:'LDR with a 10 kΩ resistor',
+  intro:`<p>The LDR needs a helper resistor so the ESP32 can measure the light. 🔆 The LDR legs have no + or −.</p>
+  <ol><li>One leg of the LDR → <span class="r">red line</span>.</li><li>The other leg → a <b>free row</b> on the breadboard.</li><li><b>10 kΩ</b> resistor (brown, black, orange): from that <b>same row</b> → <span class="b">blue line</span>.</li><li><b>Male-male</b> jumper: from that <b>same row</b> → <b>GPIO 32</b> (D32).</li></ol>
+  <p class="note">🌙 With this circuit: <b>dark = small number</b>, ☀️ <b>light = big number</b>. (Remember the code: "dark → small".)</p>`,
+  es:'El LDR necesita una resistencia de ayuda para que el ESP32 pueda medir la luz. Las patas del LDR no tienen + ni −. Una pata del LDR va a la línea roja; la otra pata a una fila libre. La resistencia de 10 kΩ (café, negro, naranja) va desde esa misma fila a la línea azul. Un jumper macho-macho va desde esa misma fila al GPIO 32. Con este circuito: oscuro = número pequeño, luz = número grande.',
+  checks:['LDR leg 1 → <span class="r">red line</span>','LDR leg 2 → a free row','10 kΩ: same row → <span class="b">blue line</span>','Jumper: same row → <b>GPIO 32</b>'],
+  q:['The jumper to GPIO 32 goes in the same row as…',['The LDR leg and the resistor','The red line','The LED'],0,'The magic point is the row where the LDR and the resistor meet. The ESP32 reads that point.'],
+  ok:'Your light sensor is ready! ☀️🌙' },
+{ title:'LED with a 220 Ω resistor',
+  intro:`<p>The LED is our <b>OUTPUT</b> ➡️. It needs a <b>220 Ω</b> resistor (red, red, brown) to protect it.</p>
+  <ol><li><b>Male-male</b> jumper: <b>GPIO 2</b> (D2) → a free row (row A).</li><li><b>220 Ω</b> resistor: from row A → another free row (row B).</li><li>LED <b>long leg (+)</b> → row B.</li><li>LED <b>short leg (−)</b> → <span class="b">blue line</span>.</li></ol>
+  <p class="note">💡 If the LED is the wrong way around, it does not turn on. Just turn it around.</p>`,
+  es:'El LED es nuestra SALIDA (OUTPUT). Necesita una resistencia de 220 Ω (rojo, rojo, café) para protegerlo. Jumper macho-macho del GPIO 2 a una fila libre (fila A). Resistencia de 220 Ω de la fila A a otra fila libre (fila B). Pata larga (+) del LED en la fila B. Pata corta (−) del LED a la línea azul. Si el LED está al revés, no se enciende: solo dale la vuelta.',
+  checks:['Jumper: <b>GPIO 2</b> → row A','220 Ω: row A → row B','LED long leg (+) → row B','LED short leg (−) → <span class="b">blue line</span>'],
+  q:['The long leg of the LED is…',['+ (anode). It goes to the resistor.','− (cathode). It goes to GND.'],0,'Long leg = + (anode). Short leg = − (cathode), to the blue line.'],
+  ok:'Your LED is connected! 💡 All the wires are done!' },
+{ title:'Final check and power ON ✅', final:true,
+  intro:`<p>Amazing work! Before you plug in the USB, check everything one more time. Follow each wire with your finger. 👆</p>`,
+  es:'¡Excelente trabajo! Antes de conectar el USB, revisa todo una vez más. Sigue cada cable con tu dedo. Cuando todo esté marcado, conecta el USB. Si algo se calienta o huele raro, desconéctalo de inmediato.',
+  checks:['No wire goes directly from a <span class="r">red line</span> to a <span class="b">blue line</span>','Every GND (−, G, GND) is on the <span class="b">blue line</span>','Every power pin (+, VCC) is on the <span class="r">red line</span>','Inputs: GPIO <b>4, 35, 34, 32</b>. Output: GPIO <b>2</b>','10 kΩ with the LDR, 220 Ω with the LED'],
+  q:null, ok:'' }
+];
+const MAXSTARS=(STEPS.length-1)*3;
+
+/* ---------- UI ---------- */
+const SP={ok:'M23 40 Q32 48 41 40',bad:'M24 45 Q32 38 40 45',mid:'M24 42 L40 42'};
+function sparky(){ return `<svg viewBox="0 0 64 64" class="sparky" aria-hidden="true"><g stroke="var(--muted)" stroke-width="3" stroke-linecap="round">${[20,28,36,44].map(v=>`<line x1="${v}" y1="6" x2="${v}" y2="13"/><line x1="${v}" y1="51" x2="${v}" y2="58"/><line x1="6" y1="${v}" x2="13" y2="${v}"/><line x1="51" y1="${v}" x2="58" y2="${v}"/>`).join('')}</g><rect x="12" y="12" width="40" height="40" rx="9" fill="var(--teal)"/><circle cx="25" cy="29" r="5" fill="#fff"/><circle cx="39" cy="29" r="5" fill="#fff"/><circle cx="26" cy="30" r="2.4" fill="#16222A"/><circle cx="40" cy="30" r="2.4" fill="#16222A"/><path id="mouth" d="${SP.mid}" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`; }
+function say(msg,mood){ const b=$('#say'); if(!b) return; b.innerHTML=msg; b.className='say'+(mood?' '+mood:''); const m=$('#mouth'); if(m) m.setAttribute('d',SP[mood]||SP.mid); }
+
+function renderTrack(){
+  $('#track').innerHTML=STEPS.map((st,i)=>`<button class="${has(i)?'done':''}${i===cur?' cur':''}" ${i>s.max?'disabled':''} data-i="${i}" aria-label="Step ${i}: ${esc(st.title)}">${i}</button>`).join('');
+  $('#track').querySelectorAll('button').forEach(b=>b.onclick=()=>show(+b.dataset.i));
+  $('#total').textContent=Object.values(s.stars).reduce((a,b)=>a+b,0); $('#max').textContent=MAXSTARS;
+}
+function show(i){
+  cur=i; s.step=i; save(); tries=0; ans={};
+  const st=STEPS[i], ck=s.checks[i]||(s.checks[i]=[]);
+  const svg=diagram(i);
+  $('#diag').innerHTML=svg+'<p class="zoomhint">Bright wires = this step. Light wires = steps you finished.</p>';
+  $('#stage').innerHTML=`<p class="mnum">${i===0?'Before you start':`Step ${i} of ${STEPS.length-1}`}</p><h2>${st.title}</h2>
+  <div class="intro">${st.intro}</div><div class="es" id="es" hidden>🇪🇸 ${st.es}</div>
+  <div class="diag-m">${i>0?svg:''}</div>
+  <ul class="checks">${st.checks.map((c,n)=>`<li><label><input type="checkbox" data-n="${n}" ${ck[n]?'checked':''}><span>${c}</span></label></li>`).join('')}</ul>
+  ${st.q?`<div class="q"><p class="qtext">🧠 ${st.q[0]}</p><div class="opts">${st.q[1].map((o,n)=>`<button class="opt" data-n="${n}" aria-pressed="false">${o}</button>`).join('')}</div></div>`:''}
+  <div class="actions">${st.final?'':'<button class="btn primary" id="check">I finished this step</button>'}<button class="btn ghost" id="esb" aria-expanded="false">🇪🇸 Español</button></div>
+  <div id="winbox"></div><div id="finalbox"></div>
+  <div class="bubble">${sparky()}<div class="say" id="say" aria-live="polite"></div></div>`;
+  $('#stage').querySelectorAll('.checks input').forEach(c=>c.onchange=()=>{ ck[+c.dataset.n]=c.checked; save(); if(st.final) finalBox(); });
+  $('#stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{ $('#stage').querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed','true'); ans.q=+b.dataset.n; });
+  $('#esb').onclick=e=>{ const es=$('#es'); es.hidden=!es.hidden; e.currentTarget.setAttribute('aria-expanded',!es.hidden); };
+  if($('#check')) $('#check').onclick=doCheck;
+  say(i===0?"Hi! I'm Sparky. Let's connect your sensor station together. 🔌":(has(i)?'You already finished this step. You can review it.':'Connect the wires, tick the boxes, and answer my question. 🙂'));
+  if(has(i)&&!st.final) showWin(i,false);
+  if(st.final) finalBox();
+  renderTrack(); renderConn();
+  if(window.innerWidth<980) $('#stage').scrollIntoView({block:'start'});
+}
+function doCheck(){
+  const st=STEPS[cur], ck=s.checks[cur]||[];
+  if(!st.checks.every((_,n)=>ck[n])){ say('Tick all the boxes when you finish each connection. ✅','bad'); return; }
+  if(st.q){ if(ans.q===undefined){ say('Answer my question first. 🧠','bad'); return; }
+    if(ans.q!==st.q[2]){ tries++; say(st.q[3],'bad'); return; } }
+  const first=!has(cur);
+  if(first){ s.done.push(cur); s.stars[cur]=tries===0?3:tries===1?2:1; }
+  s.max=Math.max(s.max,cur+1); save();
+  say(st.ok,'ok'); renderTrack(); renderConn(); showWin(cur,first); if(first) confetti();
+}
+function showWin(i,fresh){
+  const st=s.stars[i];
+  $('#winbox').innerHTML=`<div class="win"><span class="stars" aria-label="${st} of 3 stars">${'⭐'.repeat(st)}${'☆'.repeat(3-st)}</span><b>${fresh?'Step complete!':'Step done'}</b><button class="btn go" id="next">Next step</button></div>`;
+  $('#next').onclick=()=>show(Math.min(i+1,STEPS.length-1));
+}
+function finalBox(){
+  const st=STEPS[cur], ck=s.checks[cur]||[], all=st.checks.every((_,n)=>ck[n]);
+  if(!all){ $('#finalbox').innerHTML=''; return; }
+  if(!has(cur)){ s.done.push(cur); save(); renderTrack(); confetti(); }
+  const total=Object.values(s.stars).reduce((a,b)=>a+b,0);
+  $('#finalbox').innerHTML=`<div class="intro" style="margin-top:14px"><p class="note">🔥 Now plug in the USB cable. If something gets <b>hot</b> or <b>smells</b> strange, <b>unplug it immediately</b> and call your teacher.</p>
+  <ol><li>Open the code you built in <b>ESP32 Sensor Quest</b>.</li><li>Check that the pin numbers in your code are the same: <code>MQ135_PIN = 34</code>, <code>KY037_PIN = 35</code>, <code>LDR_PIN = 32</code>, <code>DHT_PIN = 4</code>, <code>LED_PIN = 2</code>. If not, change the numbers in your code.</li><li>Upload the code and open the <b>Serial Monitor</b> at <b>115200 baud</b>.</li><li>Test it: cover the LDR ✋, clap near the KY-037 👏, breathe near the DHT11 🌬️.</li></ol></div>
+  <div class="cert"><div style="font-size:44px">🏅</div><h3>Wiring master!</h3><p style="margin:4px 0">You connected 5 parts to your ESP32.</p><p class="stars">⭐ ${total} / ${MAXSTARS}</p></div>`;
+  say('Everything is checked! Plug in the USB and test your station. 🚀','ok');
+}
+
+function confetti(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c=$('#confetti'), x=c.getContext('2d'); c.width=innerWidth; c.height=innerHeight;
+  const cols=['#39424D','#E5383B','#1F6FEB','#2DA44E','#E9A800','#F07B1D'];
+  const P=Array.from({length:70},()=>({x:innerWidth/2,y:innerHeight/3,vx:(Math.random()-.5)*12,vy:-Math.random()*10-3,r:Math.random()*6,c:cols[Math.floor(Math.random()*cols.length)]}));
+  let f=0; (function loop(){ x.clearRect(0,0,c.width,c.height); P.forEach(p=>{ p.vy+=.35; p.x+=p.vx; p.y+=p.vy; p.r+=.15; x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-5,-2,10,4); x.restore(); }); if(++f<75) requestAnimationFrame(loop); else x.clearRect(0,0,c.width,c.height); })();
+}
+$('#reset').onclick=()=>{ if(confirm('Start again from the beginning? Your progress will be deleted.')){ try{ localStorage.removeItem(KEY); }catch(e){} s=JSON.parse(JSON.stringify(DEF)); show(0); } };
+show(Math.min(s.step,s.max));
+</script>
+</body>
+</html>
